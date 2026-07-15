@@ -1436,10 +1436,16 @@ async function renderAdminStatus(body){
     });
   });
   const rows = all.map(a=>`<tr><td>${a.programName}</td><td>${a.className}</td><td>${a.group}모둠</td><td>${a.sid}</td><td>${a.name}</td><td>${a.birth}</td><td>${fmtDateTime(a.appliedAt)}</td></tr>`).join('');
+  const classOptions = [];
+  CONFIG.programs.forEach(p=>{ p.classes.forEach(c=>{ classOptions.push(`<option value="${c.id}">${c.name}</option>`); }); });
   body.innerHTML = `
     <div class="card">
       <h3 style="margin-top:0;">반별 신청 인원 현황</h3>
       <button class="btn teal small" style="margin-bottom:10px;" onclick="showSeatingCharts()">🪑 반별 모둠 자리배치표 보기/인쇄 (A4)</button>
+      <div class="inline-form" style="margin-bottom:10px;">
+        <select id="seating-class-select">${classOptions.join('') || '<option value="">등록된 반 없음</option>'}</select>
+        <button class="btn small accent" onclick="printOneClassSeatingChart()">🖨 반별 모둠배치표 인쇄</button>
+      </div>
       <div class="table-wrap">
         <table><thead><tr><th>프로그램</th><th>반</th><th>신청 인원</th><th>상태</th></tr></thead>
         <tbody>${summaryRows.join('') || '<tr><td colspan="4" style="text-align:center;color:#999;">등록된 반 없음</td></tr>'}</tbody></table>
@@ -1476,7 +1482,13 @@ function safeSheetName(name, used){
   return candidate;
 }
 // ---------- 반별 모둠 자리배치표 (A4, 반당 1페이지) ----------
-async function showSeatingCharts(){
+function printOneClassSeatingChart(){
+  const sel = document.getElementById('seating-class-select');
+  const cid = sel ? sel.value : '';
+  if(!cid){ showAlert('반을 선택해주세요.'); return; }
+  showSeatingCharts(cid, true);
+}
+async function showSeatingCharts(filterId, autoPrint){
   const all = window._allAppsCache || await getAllApplications();
   if(!CONFIG.programs.length){ showAlert('등록된 프로그램/반이 없습니다.'); return; }
   const pages = [];
@@ -1518,8 +1530,8 @@ async function showSeatingCharts(){
     }
   }
   if(pages.length===0){ showAlert('등록된 반이 없습니다.'); return; }
-  const tabButtons = `<button class="tab-btn active" data-target="all" onclick="filterPages('all',this)">전체</button>` +
-    tabs.map(t=>`<button class="tab-btn" data-target="${t.id}" onclick="filterPages('${t.id}',this)">${t.label}</button>`).join('');
+  const tabButtons = `<button class="tab-btn ${!filterId?'active':''}" data-target="all" onclick="filterPages('all',this)">전체</button>` +
+    tabs.map(t=>`<button class="tab-btn ${filterId===t.id?'active':''}" data-target="${t.id}" onclick="filterPages('${t.id}',this)">${t.label}</button>`).join('');
   const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
     <title>반별 모둠 자리배치표</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -1553,11 +1565,13 @@ async function showSeatingCharts(){
     <script>
       function filterPages(target, btn){
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
+        if(btn) btn.classList.add('active');
         document.querySelectorAll('.page').forEach(p=>{
           p.style.display = (target==='all' || p.dataset.classId===target) ? '' : 'none';
         });
       }
+      ${filterId ? `filterPages('${filterId}', document.querySelector('.tab-btn[data-target="${filterId}"]'));` : ''}
+      ${autoPrint ? `window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 500); });` : ''}
     <\/script>
     </body></html>`;
   const blob = new Blob([html], { type:'text/html' });
