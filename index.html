@@ -279,13 +279,18 @@ function showModal(message, opts){
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  const close = ()=>{ overlay.remove(); };
+  const keyHandler = (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); overlay.querySelector('#modal-confirm-btn').click(); }
+    else if(e.key==='Escape'){ const cb = overlay.querySelector('#modal-cancel-btn'); if(cb) cb.click(); else close(); }
+  };
+  const close = ()=>{ overlay.remove(); document.removeEventListener('keydown', keyHandler); };
   overlay.querySelector('#modal-confirm-btn').onclick = ()=>{
     const val = hasInput ? document.getElementById('modal-input').value : undefined;
     close();
     if(onConfirm) onConfirm(val);
   };
   if(cancelText){ overlay.querySelector('#modal-cancel-btn').onclick = close; }
+  document.addEventListener('keydown', keyHandler);
   if(hasInput){ const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }
 }
 function showAlert(message){ showModal(message, { confirmText:'확인' }); }
@@ -1669,11 +1674,11 @@ function showEditFormFor(a){
     <div class="summary-row"><span>학번</span><span>${a.sid}</span></div>
     <div class="summary-row"><span>이름</span><span>${a.name}</span></div>
     <label>프로그램</label>
-    <select id="edit-prog" onchange="onEditProgChange()">${progOptions}</select>
+    <select id="edit-prog" onchange="onEditProgChange()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEdit();}">${progOptions}</select>
     <label>반</label>
-    <select id="edit-class" onchange="onEditClassChange()"></select>
+    <select id="edit-class" onchange="onEditClassChange()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEdit();}"></select>
     <label>모둠</label>
-    <select id="edit-group"></select>
+    <select id="edit-group" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEdit();}"></select>
     <button class="btn teal" onclick="saveEdit()">변경 저장</button>
     <button class="btn coral" onclick="deleteEdit()">신청 취소(삭제)</button>
   `;
