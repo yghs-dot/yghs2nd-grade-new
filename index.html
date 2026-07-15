@@ -1434,6 +1434,7 @@ async function renderAdminStatus(body){
   body.innerHTML = `
     <div class="card">
       <h3 style="margin-top:0;">반별 신청 인원 현황</h3>
+      <button class="btn teal small" style="margin-bottom:10px;" onclick="showSeatingCharts()">🪑 반별 모둠 자리배치표 보기/인쇄 (A4)</button>
       <div class="table-wrap">
         <table><thead><tr><th>프로그램</th><th>반</th><th>신청 인원</th><th>상태</th></tr></thead>
         <tbody>${summaryRows.join('') || '<tr><td colspan="4" style="text-align:center;color:#999;">등록된 반 없음</td></tr>'}</tbody></table>
@@ -1469,6 +1470,96 @@ function safeSheetName(name, used){
   used.add(candidate);
   return candidate;
 }
+// ---------- 반별 모둠 자리배치표 (A4, 반당 1페이지) ----------
+async function showSeatingCharts(){
+  const all = window._allAppsCache || await getAllApplications();
+  if(!CONFIG.programs.length){ showAlert('등록된 프로그램/반이 없습니다.'); return; }
+  const pages = [];
+  const tabs = [];
+  for(const p of CONFIG.programs){
+    const meta = getTrackMeta(p.id);
+    for(const c of p.classes){
+      const students = all.filter(a=>a.programId===p.id && a.classId===c.id);
+      const counts = {1:0,2:0,3:0,4:0,5:0,6:0};
+      const byGroup = {1:[],2:[],3:[],4:[],5:[],6:[]};
+      students.forEach(s=>{ counts[s.group]=(counts[s.group]||0)+1; (byGroup[s.group]=byGroup[s.group]||[]).push(s); });
+      const capacity = c.capacity || 26;
+      const plan = computeGroupPlan(counts, capacity);
+      // 배치 순서: 1행(1,2,3모둠) → 2행(4,5,6모둠)
+      let boxesHtml = '';
+      for(const g of [1,2,3,4,5,6]){
+        const info = plan.groups[g];
+        const list = (byGroup[g]||[]).slice().sort((a,b)=>sidCompare(a.sid,b.sid));
+        let seatsHtml = list.map(s=>`<div class="seat">${s.name}(${s.sid})</div>`).join('');
+        const emptyCount = Math.max(0, info.displayMax - list.length);
+        for(let i=0;i<emptyCount;i++){ seatsHtml += `<div class="seat empty">빈자리</div>`; }
+        boxesHtml += `
+          <div class="group-box">
+            <div class="title" style="color:${meta.color};">${g}모둠 <span class="cnt">(${list.length}/${info.displayMax}명)</span></div>
+            <div class="seats">${seatsHtml || '<div class="seat empty">신청 학생 없음</div>'}</div>
+          </div>`;
+      }
+      tabs.push({ id:c.id, label:c.name });
+      pages.push(`
+        <div class="page" data-class-id="${c.id}">
+          <div class="header">
+            <div class="eyebrow" style="background:${meta.color}1A;color:${meta.color};">${meta.icon} ${p.name.split('(')[0].trim()}</div>
+            <h1>${c.name} 모둠 자리배치표</h1>
+            <div class="sub">전체 신청 인원 ${plan.n} / ${capacity}명 · 생성일 ${todayStr()}</div>
+          </div>
+          <div class="grid">${boxesHtml}</div>
+        </div>
+      `);
+    }
+  }
+  if(pages.length===0){ showAlert('등록된 반이 없습니다.'); return; }
+  const tabButtons = `<button class="tab-btn active" data-target="all" onclick="filterPages('all',this)">전체</button>` +
+    tabs.map(t=>`<button class="tab-btn" data-target="${t.id}" onclick="filterPages('${t.id}',this)">${t.label}</button>`).join('');
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+    <title>반별 모둠 자리배치표</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+      @page{ size:A4; margin:12mm; }
+      *{ box-sizing:border-box; }
+      body{ font-family:'Noto Sans KR',sans-serif; margin:0; color:#242832; background:#F4F7FF; }
+      h1{ font-family:'Jua','Noto Sans KR',sans-serif; }
+      #toolbar{ position:sticky; top:0; z-index:99; background:#fff; padding:14px 16px; box-shadow:0 4px 16px rgba(76,110,245,.12); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+      .tab-btn{ font-family:'Jua','Noto Sans KR',sans-serif; padding:9px 16px; border-radius:12px; border:2px solid #E4E9F7; background:#fff; color:#6B7280; font-size:14px; cursor:pointer; }
+      .tab-btn.active{ background:#4C6EF5; border-color:#4C6EF5; color:#fff; }
+      #printBtn{ margin-left:auto; font-family:'Jua','Noto Sans KR',sans-serif; padding:10px 18px; border-radius:12px; border:none; background:#FF8C42; color:#fff; font-size:14px; cursor:pointer; box-shadow:0 6px 16px rgba(255,140,66,.3); }
+      .page{ page-break-after:always; height:273mm; overflow:hidden; padding:10mm 6mm 0; background:#fff; margin:14px auto; max-width:900px; border-radius:20px; box-shadow:0 8px 24px rgba(76,110,245,0.12); }
+      .page:last-child{ page-break-after:auto; }
+      .header{ text-align:center; margin-bottom:8mm; }
+      .eyebrow{ display:inline-block; font-size:10pt; font-weight:700; padding:4px 12px; border-radius:20px; margin-bottom:6px; }
+      .header h1{ font-size:19pt; margin:2mm 0; color:#242832; }
+      .header .sub{ font-size:10pt; color:#6B7280; }
+      .grid{ display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(2, minmax(0,1fr)); gap:6mm; height:220mm; overflow:hidden; }
+      .group-box{ border:2px solid #E4E9F7; border-radius:16px; padding:5mm; display:flex; flex-direction:column; overflow:hidden; min-height:0; background:#FAFBFF; }
+      .group-box .title{ font-family:'Jua','Noto Sans KR',sans-serif; font-weight:400; font-size:13pt; text-align:center; padding-bottom:2.5mm; margin-bottom:2.5mm; border-bottom:2px solid #EEF0F6; flex:0 0 auto; }
+      .group-box .title .cnt{ font-family:'Noto Sans KR',sans-serif; font-size:9pt; color:#9CA3AF; font-weight:400; }
+      .seats{ display:flex; flex-wrap:wrap; gap:2.5mm; justify-content:center; align-content:flex-start; flex:1; overflow:hidden; min-height:0; }
+      .seat{ width:100%; border:1.5px solid #D8DEF5; border-radius:10px; padding:6px 4px; text-align:center; background:#fff; font-weight:700; font-size:11pt; }
+      .seat.empty{ border-style:dashed; color:#C7CCDB; background:#fff; font-size:9pt; font-weight:400; }
+      @media print{ #toolbar{ display:none; } body{ background:#fff; } .page{ box-shadow:none; border-radius:0; margin:0; } }
+    </style>
+    </head><body>
+    <div id="toolbar">${tabButtons}<button id="printBtn" onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>
+    ${pages.join('')}
+    <script>
+      function filterPages(target, btn){
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.page').forEach(p=>{
+          p.style.display = (target==='all' || p.dataset.classId===target) ? '' : 'none';
+        });
+      }
+    <\/script>
+    </body></html>`;
+  const blob = new Blob([html], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
 async function exportAttendanceBook(){
   const all = window._allAppsCache || await getAllApplications();
   if(!CONFIG.programs.length){ showAlert('등록된 프로그램/반이 없습니다.'); return; }
