@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>미래융합 프로젝트 포럼 신청</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --bg:#F4F7FF;
+    --card:#FFFFFF;
+    --primary:#4C6EF5;
+    --primary-dark:#3B5BDB;
+    --accent:#FF8C42;
+    --teal:#2EC4B6;
+    --coral:#FF6B6B;
+    --yellow:#FFD166;
+    --text:#242832;
+    --text-light:#6B7280;
+    --radius:20px;
+    --shadow: 0 8px 24px rgba(76,110,245,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg,#EEF2FF 0%, #F4F7FF 40%, #FFF8EF 100%);
+    min-height:100vh;
+    font-family:'Noto Sans KR', sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3, .brand, .btn, .stepper-label{font-family:'Jua','Noto Sans KR',sans-serif;}
+  #app{
+    max-width:560px;
+    margin:0 auto;
+    min-height:100vh;
+    padding:20px 16px 60px;
+  }
+  .admin-wrap #app{max-width:960px;}
+
+  /* ---------- Header / Trail (signature element) ---------- */
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .brand{font-size:20px;color:var(--primary-dark);display:flex;align-items:center;gap:8px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;}
+  .home-link{font-size:13px;color:var(--text-light);text-decoration:none;background:#fff;border-radius:20px;padding:6px 12px;box-shadow:var(--shadow);cursor:pointer;border:none;}
+
+  .trail{display:flex;align-items:center;justify-content:space-between;margin:18px 0 26px;padding:0 4px;}
+  .trail-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+  .trail-step:not(:last-child)::after{
+    content:'';position:absolute;top:15px;left:55%;width:90%;height:3px;
+    background:repeating-linear-gradient(90deg,#D8DEF5 0 6px, transparent 6px 12px);
+    z-index:0;
+  }
+  .trail-step.done:not(:last-child)::after{background:var(--teal);}
+  .trail-node{
+    width:32px;height:32px;border-radius:50%;background:#fff;border:3px solid #D8DEF5;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text-light);
+    z-index:1;transition:all .25s;
+  }
+  .trail-step.active .trail-node{border-color:var(--accent);color:var(--accent);background:#FFF3E8;transform:scale(1.1);}
+  .trail-step.done .trail-node{border-color:var(--teal);background:var(--teal);color:#fff;}
+  .trail-label{font-size:11px;color:var(--text-light);margin-top:6px;text-align:center;}
+  .trail-step.active .trail-label{color:var(--accent);font-weight:700;}
+
+  /* ---------- Cards & basic components ---------- */
+  .card{background:var(--card);border-radius:var(--radius);padding:22px 20px;box-shadow:var(--shadow);margin-bottom:16px;}
+  .hero{
+    background:linear-gradient(135deg, var(--primary) 0%, #6C8CFF 100%);
+    color:#fff;border-radius:var(--radius);padding:30px 22px;margin-bottom:20px;
+    box-shadow:0 12px 28px rgba(76,110,245,0.28);position:relative;overflow:hidden;
+  }
+  .hero::before{content:'✦';position:absolute;right:-10px;top:-20px;font-size:120px;color:rgba(255,255,255,0.12);}
+  .hero h1{margin:0 0 6px;font-size:26px;}
+  .hero p{margin:0;font-size:14px;opacity:.92;line-height:1.6;}
+
+  label{display:block;font-size:13px;font-weight:700;color:var(--text-light);margin-bottom:6px;margin-top:14px;}
+  input[type=text], input[type=password], input[type=datetime-local], select, textarea{
+    width:100%;padding:13px 14px;border-radius:12px;border:2px solid #E4E9F7;font-size:16px;
+    font-family:'Noto Sans KR',sans-serif;background:#FAFBFF;color:var(--text);
+  }
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--primary);background:#fff;}
+  textarea{min-height:120px;resize:vertical;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:15px 18px;border-radius:14px;border:none;font-size:17px;cursor:pointer;
+    background:var(--primary);color:#fff;box-shadow:0 6px 16px rgba(76,110,245,0.35);
+    transition:transform .12s, box-shadow .12s; margin-top:10px;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{background:#C7CCDB;box-shadow:none;cursor:not-allowed;}
+  .btn.secondary{background:#fff;color:var(--primary);border:2px solid var(--primary);box-shadow:none;}
+  .btn.accent{background:var(--accent);box-shadow:0 6px 16px rgba(255,140,66,.35);}
+  .btn.teal{background:var(--teal);box-shadow:0 6px 16px rgba(46,196,182,.3);}
+  .btn.coral{background:var(--coral);box-shadow:0 6px 16px rgba(255,107,107,.3);}
+  .btn.small{width:auto;padding:9px 16px;font-size:14px;margin-top:0;}
+  .btn.ghost{background:transparent;color:var(--text-light);box-shadow:none;border:2px dashed #D8DEF5;}
+
+  .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  .choice-card{
+    background:#fff;border:2px solid #E4E9F7;border-radius:16px;padding:16px 12px;text-align:center;cursor:pointer;
+    transition:all .15s;
+  }
+  .choice-card:hover{border-color:var(--primary);}
+  .choice-card .num{font-size:22px;font-weight:900;color:var(--primary);}
+  .choice-card .sub{font-size:12px;color:var(--text-light);margin-top:4px;}
+  .choice-card.full{opacity:.45;cursor:not-allowed;background:#F3F4F6;}
+  .choice-card.full .num{color:#9CA3AF;}
+  .choice-card.disabled{opacity:.3;cursor:not-allowed;background:#F3F4F6;border-style:dashed;}
+  .choice-card.selected{border-color:var(--accent);background:#FFF3E8;box-shadow:0 0 0 3px rgba(255,140,66,.15);}
+
+  .list-card{
+    background:#fff;border:2px solid #E4E9F7;border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;transition:all .15s;
+  }
+  .list-card:hover{border-color:var(--primary);}
+  .list-card.full{opacity:.5;cursor:not-allowed;background:#F3F4F6;}
+  .list-card .title{font-weight:700;font-size:16px;}
+  .list-card .meta{font-size:12px;color:var(--text-light);margin-top:3px;}
+  .badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:#EEF2FF;color:var(--primary);}
+  .badge.warn{background:#FFF1E8;color:var(--accent);}
+  .badge.full{background:#FDEBEB;color:var(--coral);}
+
+  .msg-box{background:#FFF8E8;border:2px dashed var(--yellow);border-radius:16px;padding:18px;font-size:14px;line-height:1.7;color:#7A5B00;}
+  .error-box{background:#FDECEC;border:2px solid #FFC9C9;border-radius:14px;padding:14px;font-size:14px;color:#C1121F;margin-top:10px;}
+  .success-box{background:#E9FBF8;border:2px solid var(--teal);border-radius:14px;padding:14px;font-size:14px;color:#0F766E;margin-top:10px;}
+  .summary-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EEF0F6;font-size:14px;}
+  .summary-row span:first-child{color:var(--text-light);}
+  .summary-row span:last-child{font-weight:700;}
+
+  .countdown{font-size:28px;font-weight:900;color:var(--primary-dark);text-align:center;margin:10px 0;font-family:'Jua';}
+
+  .tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;}
+  .tab{flex:0 0 auto;padding:10px 16px;border-radius:12px;background:#fff;color:var(--text-light);font-size:14px;font-weight:700;cursor:pointer;border:2px solid #E4E9F7;white-space:nowrap;}
+  .tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #EEF0F6;}
+  th{color:var(--text-light);font-weight:700;background:#F8F9FD;position:sticky;top:0;}
+  .table-wrap{max-height:420px;overflow:auto;border-radius:12px;border:1px solid #EEF0F6;}
+
+  .prog-block{border:2px solid #E4E9F7;border-radius:16px;padding:14px;margin-bottom:12px;}
+  .prog-block h4{margin:0 0 8px;font-size:16px;}
+  .class-chip{display:inline-flex;align-items:center;gap:6px;background:#EEF2FF;color:var(--primary-dark);border-radius:20px;padding:6px 12px;font-size:13px;margin:4px 6px 0 0;}
+  .class-chip button{background:none;border:none;color:var(--coral);cursor:pointer;font-weight:900;font-size:13px;}
+  .inline-form{display:flex;gap:8px;margin-top:8px;}
+  .inline-form input{flex:1;}
+  .inline-form button{width:auto;padding:10px 16px;margin-top:0;}
+
+  .footer-note{text-align:center;font-size:12px;color:var(--text-light);margin-top:24px;line-height:1.6;}
+  .link-btn{background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;text-decoration:underline;padding:6px;}
+  @media(max-width:380px){ .choice-grid{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div id="app"><div style="padding:40px;text-align:center;color:#888;">불러오는 중...</div></div>
+
+<script>
+/* 카카오톡 인앱 브라우저 감지 및 Safari(외부 브라우저)로 열기 유도 배너
+   - 카카오톡 안에서 링크를 열면 외부 서버(Google Apps Script) 통신이 제한되어
+     화면이 뜨지 않거나 멈추는 문제가 자주 발생하므로, 가장 먼저 실행되어 안내합니다. */
+(function(){
+  try{
+    var ua = navigator.userAgent || '';
+    var isKakao = /kakaotalk/i.test(ua);
+    var isIOS = /iphone|ipad|ipod/i.test(ua);
+    if(!isKakao || !isIOS) return; // 안드로이드 카카오톡 인앱 브라우저는 정상 동작하므로 표시하지 않음
+    var bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#FEE500;color:#3C1E1E;padding:14px 16px;font-family:"Noto Sans KR",sans-serif;font-size:14px;line-height:1.6;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+    bar.innerHTML = '⚠️ 카카오톡 브라우저에서는 신청이 제대로 동작하지 않을 수 있어요.<br>아래 버튼을 눌러 Safari(외부 브라우저)에서 열어주세요.<br>' +
+      '<button id="kko-open-btn" style="margin-top:8px;padding:10px 16px;border:none;border-radius:10px;background:#3C1E1E;color:#FEE500;font-weight:700;font-size:14px;">Safari에서 열기</button>' +
+      '<button id="kko-close-btn" style="margin-top:8px;margin-left:8px;padding:10px 14px;border:none;border-radius:10px;background:transparent;color:#3C1E1E;font-size:13px;text-decoration:underline;">닫기</button>';
+    document.body.appendChild(bar);
+    attachHandlers();
+    function attachHandlers(){
+      var openBtn = document.getElementById('kko-open-btn');
+      var closeBtn = document.getElementById('kko-close-btn');
+      if(openBtn) openBtn.onclick = function(){
+        var target = window.location.href;
+        // 카카오톡 인앱 브라우저에서 외부 브라우저(Safari/Chrome)로 강제 이동시키는 공식 스킴
+        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(target);
+      };
+      if(closeBtn) closeBtn.onclick = function(){ bar.remove(); };
+    }
+  }catch(e){ /* 감지 실패 시 무시하고 평소대로 진행 */ }
+})();
+</script>
+<script>
+/* =========================================================
+   미래융합 프로젝트 포럼 신청 웹앱
+   - 학생: 본인확인 → 프로그램 선택 → 반 선택 → 모둠 선택 → 신청
+   - 관리자: 설정 / 기초자료 / 신청현황 / 미신청자 / 신청관리(취소·수정)
+   ========================================================= */
+
+// ---------- 백엔드 연결: Firebase (Firestore + Authentication) ----------
+// ⚠️ 아래 값을 Firebase 콘솔 → 프로젝트 설정 → "내 앱"에서 발급받은 값으로 바꿔주세요. (설치_안내_Firebase.md 참고)
+const firebaseConfig = {
+  apiKey: "AIzaSyDmlbKOrZ9APVxKO6WPuPACiawRr-GB6Zw",
+  authDomain: "yghs2nd-forum2.firebaseapp.com",
+  projectId: "yghs2nd-forum2",
+  storageBucket: "yghs2nd-forum2.firebasestorage.app",
+  messagingSenderId: "1057528937791",
+  appId: "1:1057528937791:web:0c2eb50deba39e002c278a"
+};
+let STORAGE_OK = true;
+let fbApp, db, auth;
+function initFirebase(){
+  try{
+    if(!firebaseConfig.apiKey || firebaseConfig.apiKey.indexOf('PASTE_YOUR')===0){ STORAGE_OK=false; return; }
+    fbApp = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    STORAGE_OK = true;
+  }catch(e){ console.error('Firebase init failed', e); STORAGE_OK = false; }
+}
+function checkStorageHealth(){
+  if(!fbApp){ initFirebase(); }
+  if(!firebaseConfig.apiKey || firebaseConfig.apiKey.indexOf('PASTE_YOUR')===0){ STORAGE_OK=false; }
+}
+// ---------- 개인정보 보호용 해시(SHA-256, 브라우저 내장 Web Crypto 사용) ----------
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function rosterHashInput(sid, name, birthDigits){
+  return `${String(sid).trim()}|${String(name).trim()}|${birthDigits}`;
+}
+async function fetchConfigOnly(){
+  try{
+    const snap = await db.collection('config').doc('main').get();
+    if(snap.exists){ CONFIG = snap.data(); STORAGE_OK = true; return true; }
+    STORAGE_OK = true; // 아직 설정이 없을 뿐 연결 자체는 정상
+    return true;
+  }catch(e){ console.error('fetchConfigOnly failed', e); STORAGE_OK = false; return false; }
+}
+async function fetchRosterOnly(){
+  // 학생 화면에서는 절대 호출하지 않음(개인정보 보호). 관리자 로그인 후에만 사용.
+  try{
+    const snap = await db.collection('rosterFull').get();
+    ROSTER = snap.docs.map(d=>d.data());
+    STORAGE_OK = true; return true;
+  }catch(e){ console.error('fetchRosterOnly failed', e); STORAGE_OK = false; return false; }
+}
+function randId(){ return Math.random().toString(36).slice(2,8); }
+function storageWarningBanner(){
+  if(STORAGE_OK) return '';
+  return `<div class="error-box" style="margin-bottom:14px;line-height:1.7;">
+    ⚠️ <b>백엔드(Firebase)에 연결되지 않았습니다.</b><br>
+    학번/이름/신청 내용이 저장되지 않고, 다른 기기와 데이터가 공유되지 않습니다.<br>
+    화면 상단 코드의 <b>firebaseConfig</b> 값이 Firebase 콘솔에서 발급받은 값으로 정확히 설정되어 있는지 확인해주세요. (설치_안내_Firebase.md 참고)
+  </div>`;
+}
+
+// ---------- custom modal (native alert/confirm are blocked inside the sandboxed preview) ----------
+function showModal(message, opts){
+  opts = opts || {};
+  const confirmText = opts.confirmText || '확인';
+  const cancelText = opts.cancelText || null;
+  const onConfirm = opts.onConfirm || null;
+  const inputDefault = opts.inputDefault;
+  const hasInput = typeof inputDefault !== 'undefined';
+  const old = document.getElementById('custom-modal-overlay');
+  if(old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'custom-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.28);font-family:'Noto Sans KR',sans-serif;">
+      <div style="font-size:15px;line-height:1.7;color:#242832;margin-bottom:${hasInput?'12px':'18px'};white-space:pre-line;">${message}</div>
+      ${hasInput ? `<input id="modal-input" type="${opts.inputType||'text'}" value="${inputDefault}" style="width:100%;padding:11px 12px;border-radius:10px;border:2px solid #E4E9F7;font-size:15px;margin-bottom:16px;font-family:'Noto Sans KR',sans-serif;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('modal-confirm-btn').click();}">` : ''}
+      <div style="display:flex;gap:10px;">
+        ${cancelText ? `<button id="modal-cancel-btn" style="flex:1;padding:12px;border-radius:12px;border:2px solid #E4E9F7;background:#fff;color:#6B7280;font-size:15px;font-family:'Jua','Noto Sans KR',sans-serif;">${cancelText}</button>` : ''}
+        <button id="modal-confirm-btn" style="flex:1;padding:12px;border-radius:12px;border:none;background:#4C6EF5;color:#fff;font-size:15px;font-weight:700;font-family:'Jua','Noto Sans KR',sans-serif;">${confirmText}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = ()=>{ overlay.remove(); };
+  overlay.querySelector('#modal-confirm-btn').onclick = ()=>{
+    const val = hasInput ? document.getElementById('modal-input').value : undefined;
+    close();
+    if(onConfirm) onConfirm(val);
+  };
+  if(cancelText){ overlay.querySelector('#modal-cancel-btn').onclick = close; }
+  if(hasInput){ const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }
+}
+function showAlert(message){ showModal(message, { confirmText:'확인' }); }
+function showConfirmDialog(message, onConfirm){ showModal(message, { confirmText:'확인', cancelText:'취소', onConfirm }); }
+function showPromptDialog(message, defaultValue, onConfirm, inputType){ showModal(message, { confirmText:'저장', cancelText:'취소', inputDefault:defaultValue, inputType:inputType||'text', onConfirm }); }
+
+// ---------- global state ----------
+let CONFIG = null;     // { openAt, programs:[{id,name,classes:[{id,name,capacity}]}] } — 관리자 인증은 Firebase Authentication이 담당
+let ROSTER = [];        // [{sid,name,birth}] (관리자 로그인 상태에서만 로드됨)
+let STATE = {
+  screen:'home',
+  student:{ sid:'', name:'', birth:'', verified:false, existingApp:null },
+  selection:{ programId:null, classId:null, group:null },
+  admin:{ loggedIn:false, tab:'settings' },
+  countdownTimer:null,
+  editTarget:null // sid being edited by admin
+};
+
+const DEFAULT_CONFIG = {
+  openAt:'2026-07-15T09:00',
+  programs:[
+    { id:'trackA', name:'트랙 A. AI 리터러시 (AI 시대를 살아가는 디지털 시민)', classes:[
+      { id:'trackA-1', name:'2학년 1반', capacity:24 }, { id:'trackA-2', name:'2학년 2반', capacity:24 } ] },
+    { id:'trackB', name:'트랙 B. CSR 프로젝트 (우리 사회를 바꾸는 상생 기업 기획)', classes:[
+      { id:'trackB-1', name:'2학년 4반', capacity:25 }, { id:'trackB-2', name:'2학년 5반', capacity:24 } ] },
+    { id:'trackC', name:'트랙 C. ESG 프로젝트 (토론으로 이해하는 ESG 세상)', classes:[
+      { id:'trackC-1', name:'2학년 3반', capacity:26 } ] },
+    { id:'trackD', name:'트랙 D. 경제·금융 프로젝트 (올바른 투자의 첫걸음, 가치투자 시뮬레이션)', classes:[
+      { id:'trackD-1', name:'2학년 6반', capacity:25 } ] }
+  ]
+};
+
+// 운영계획서 기반 트랙 소개 자료 (사전안내 화면에 표시)
+const TRACK_LIST = [
+  { key:'trackA', badge:'A', name:'AI 리터러시 - AI 시대를 살아가는 디지털 시민', classesLabel:'운영 2개 반',
+    goal:'생성형 AI의 기본 원리를 이해하고, 활용 이면의 윤리적 책임과 위험 요소를 비판적으로 검증하여 디지털 카드뉴스를 제작합니다.',
+    sessions:[
+      {title:'1차시. AI 윤리 개념 및 쟁점 이해', content:'AI 윤리 빙고 게임으로 핵심 개념(데이터 편향성, 할루시네이션 등) 파악, 채용 성차별·딥페이크 등 실제 사례 탐색 및 팩트체크'},
+      {title:'2차시. 윤리 문제 심층 분석과 콘텐츠 기획', content:'팀별 AI 윤리 이슈 선정 및 이해관계자 영향 분석, 타깃 독자층 설정과 카드뉴스 레이아웃 기획, 프롬프트 엔지니어링 학습'},
+      {title:'3차시. AI 활용 및 비판적 검토 실습', content:'생성형 AI로 카드뉴스 문장·초안 생성, 결과물의 신뢰성·적절성 자체 평가 및 보완'},
+      {title:'4차시. 디지털 산출물 제작 및 성찰 공유', content:'Canva 등 협동 디자인 도구로 카드뉴스 완성, 모둠 간 교차 피드백 및 디지털 시민성 성찰'}
+    ] },
+  { key:'trackB', badge:'B', name:'CSR 프로젝트 - 우리 사회를 바꾸는 상생 기업 기획', classesLabel:'운영 2개 반',
+    goal:'기업의 사회적 책임(CSR)의 가치를 이해하고, 생성형 AI를 활용해 사회문제를 구조화하여 해결하는 비즈니스 아이디어를 기획·발표합니다.',
+    sessions:[
+      {title:'1차시. CSR의 본질 이해와 사회문제 발견', content:'CSR 개념 퀴즈 및 상생 경영 우수 사례 분석, 기후·취약계층 등 조별 관심 사회문제 탐색'},
+      {title:'2차시. 문제를 해결하는 가상 기업 기획', content:'사회문제 인과관계 마인드맵 작성, AI 브레인스토밍으로 기업명·소셜미션·슬로건 도출'},
+      {title:'3차시. 소셜 비즈니스 브랜드 구체화', content:'AI 기반 슬로건 정교화, A3 비즈니스 모델 사업계획서 작성 및 로고 스케치'},
+      {title:'4차시. 창업 프로젝트 성과 발표회', content:'비즈니스 기획보드 시각화 완성 및 전체 프레젠테이션, 모의 투자 펀딩으로 우수 CSR 기업 선정'}
+    ] },
+  { key:'trackC', badge:'C', name:'ESG 프로젝트 - 토론으로 이해하는 ESG 세상', classesLabel:'운영 1개 반',
+    goal:'ESG(환경·사회·거버넌스)의 핵심 가치를 학교 생활과 연계해 이해하고, 토론을 통해 실천 가능한 교내 ESG 로드맵을 설계합니다.',
+    sessions:[
+      {title:'1차시. ESG 개념 확립 및 환경(E) 이슈 토의', content:'탄소배출·일회용품 문제 등 분석, 우리 학교 환경 이슈 리스트 조별 도출'},
+      {title:'2차시. 사회(S)·거버넌스(G) 사례 심층 분석', content:'학생 인권·안전(S), 학생자치·의사결정 구조(G) 이해, 학교 공동체 의사결정 구조 브레인스토밍'},
+      {title:'3차시. ESG 딜레마 중심 역할 다각도 토론', content:'환경 보존과 편의성, 이윤 추구와 상생 의무 등 딜레마 사례로 역할 분담 토론 및 합의안 도출'},
+      {title:'4차시. 실천하는 우리 학교 ESG 로드맵 기획', content:'핵심 개선 아이템 선정, 실천 과제·추진 전략·기대효과 기획서 작성 및 공유'}
+    ] },
+  { key:'trackD', badge:'D', name:'경제·금융 프로젝트 - 올바른 투자의 첫걸음, 가치투자 시뮬레이션', classesLabel:'운영 1개 반',
+    goal:'단기 투기 심리에서 벗어나 기업의 내재 가치와 재무 지표를 분석하여, 합리적이고 책임감 있는 가치투자 의사결정을 연습합니다.',
+    sessions:[
+      {title:'1차시. 개인 핵심 가치관과 내재가치 기업 연계', content:'개인 핵심 가치관 도출, AI로 가치관에 부합하는 내재가치 우수 기업 탐색'},
+      {title:'2차시. 시장 변동 요인 학습 및 투자 체크리스트 수립', content:'거시경제 뉴스·기업 실적이 주가에 미치는 영향 분석, EPS·PER 등 재무지표로 팀별 투자 기준 확립'},
+      {title:'3차시. 가치투자 시뮬레이션 실전 라운드', content:'투자 3원칙 수립, 모둠별 시드머니 포트폴리오 배분, 시나리오 카드에 대응하는 라운드별 모의투자'},
+      {title:'4차시. 투자 결과 복기 및 가치투자 보고서 작성', content:'초기 투자 근거와 결과 비교 분석, 성공·실패 요인 도출 및 모둠 투자 보고서 작성'}
+    ] }
+];
+
+async function initApp(){
+  checkStorageHealth();
+  renderInitialShell(); // 네트워크 응답을 기다리는 동안에도 화면이 비어있지 않도록 즉시 표시
+  if(STORAGE_OK){
+    await fetchConfigOnly(); // Firestore는 상시 연결을 유지하므로 별도 지연(jitter) 없이 바로 조회
+    if(!CONFIG) CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    // 명단(ROSTER) 전체는 학생 화면에서 절대 불러오지 않습니다 (개인정보 보호).
+    // 본인확인은 해시 대조 방식(submitStudentLogin 참고)으로 처리됩니다.
+  } else {
+    CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    ROSTER = [];
+  }
+  render();
+  startBackgroundSync();
+}
+function jitterDelay(maxMs){
+  const ms = Math.random() * (maxMs || 2500);
+  return new Promise(resolve=>setTimeout(resolve, ms));
+}
+function renderInitialShell(){
+  const app = document.getElementById('app');
+  if(app) app.innerHTML = `
+    ${topBar(false)}
+    <div class="hero">
+      <h1>🚀 2학년 미래융합 프로젝트 포럼</h1>
+      <p>나의 진로와 관심 분야에 맞는 프로그램을 선택하고,<br>함께할 반과 모둠을 신청해보세요!</p>
+    </div>
+    <div class="card" style="text-align:center;color:#9CA3AF;">불러오는 중...</div>
+  `;
+}
+
+// 다른 기기(스마트폰 ↔ 노트북)에서 저장된 최신 설정을 항상 반영하기 위한 동기화.
+// 명단(roster)은 관리자 로그인 상태일 때만 함께 새로고침합니다 (개인정보 보호).
+async function refreshConfigAndRoster(){
+  checkStorageHealth();
+  if(!STORAGE_OK) return false;
+  const tasks = [ fetchConfigOnly() ];
+  if(STATE.admin && STATE.admin.loggedIn) tasks.push(fetchRosterOnly());
+  const results = await Promise.all(tasks);
+  STORAGE_OK = results.every(Boolean);
+  return STORAGE_OK;
+}
+function startBackgroundSync(){
+  // 입력 중인 화면(텍스트 입력 등)을 방해하지 않도록 강제 재렌더링 없이 데이터만 주기적으로 최신화.
+  // 화면 전환 시점의 명시적 새로고침과 함께 동작하므로 주기는 다소 여유 있게 설정.
+  setInterval(function(){ if(!document.hidden) refreshConfigAndRoster(); }, 25000); // 화면이 꺼져있을 땐 건너뛰어 서버 부하 절감
+}
+
+// ---------- utility ----------
+function fmtDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const days=['일','월','화','수','목','금','토'];
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}(${days[d.getDay()]}) ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function formatBirthInput(raw){
+  let digits = raw.replace(/[^0-9]/g,'').slice(0,8);
+  if(digits.length<=4) return digits;
+  if(digits.length<=6) return digits.slice(0,4)+'.'+digits.slice(4);
+  return digits.slice(0,4)+'.'+digits.slice(4,6)+'.'+digits.slice(6,8);
+}
+function parseBirthToDigits(str){
+  if(!str) return '';
+  const parts = String(str).split(/[^0-9]+/).filter(Boolean);
+  if(parts.length<3) return String(str).replace(/\D/g,'').padStart(8,'0').slice(0,8);
+  let [y,m,d] = parts;
+  if(y.length===2) y = '20'+y;
+  y = y.padStart(4,'0'); m = m.padStart(2,'0'); d = d.padStart(2,'0');
+  return (y+m+d).slice(0,8);
+}
+function findProgram(id){ return CONFIG.programs.find(p=>p.id===id); }
+function findClass(program,id){ return program.classes.find(c=>c.id===id); }
+const TRACK_COLORS = { trackA:'#4C6EF5', trackB:'#FF8C42', trackC:'#2EC4B6', trackD:'#8B5CF6' };
+const TRACK_ICONS = { trackA:'🤖', trackB:'🤝', trackC:'🌱', trackD:'📈' };
+function getTrackMeta(programId){
+  const info = TRACK_LIST.find(t=>t.key===programId);
+  return {
+    color: TRACK_COLORS[programId] || 'var(--primary)',
+    icon: TRACK_ICONS[programId] || '📚',
+    badge: info ? info.badge : '',
+    goal: info ? info.goal : ''
+  };
+}
+
+// ---------- group capacity engine ----------
+function computeGroupPlan(counts, capacity){
+  const cap = capacity || 26;
+  const n = (counts[1]||0)+(counts[2]||0)+(counts[3]||0)+(counts[4]||0)+(counts[5]||0)+(counts[6]||0);
+  // 반 정원(capacity)에 따라 모둠 구성이 처음부터 고정됨: 기본 4인 모둠 6개 + (정원-24)개 모둠은 처음부터 5인까지 표시
+  // 예) 정원 24 → 전체 4인×6, 정원 25 → 4인×5 + 5인×1(마지막 모둠), 정원 26 → 4인×4 + 5인×2(마지막 2개 모둠)
+  const baseCap = 4;
+  const overflowSlots = Math.max(0, cap - 24); // 5인까지 허용되는 모둠 개수
+  const groups = {};
+  for(let g=1; g<=6; g++){
+    const c = counts[g]||0;
+    const isFiveCapGroup = g > (6 - overflowSlots); // 마지막 overflowSlots개 모둠을 5인 모둠으로 고정 지정
+    const groupCap = isFiveCapGroup ? 5 : baseCap;
+    const canJoin = n < cap && c < groupCap;
+    groups[g] = { active:true, count:c, canJoin, displayMax: groupCap };
+  }
+  return { n, capacity:cap, classFull: n>=cap, groups };
+}
+
+// ---------- application data helpers (Firestore) ----------
+// applications 문서 ID 규칙: {programId}_{classId}_{sid}  (반별 조회를 문서ID 범위 쿼리로 처리, 별도 색인 불필요)
+function appDocId(pid,cid,sid){ return `${pid}_${cid}_${sid}`; }
+function classCountsDocId(pid,cid){ return `${pid}_${cid}`; }
+async function getClassGroupCounts(pid,cid){
+  try{
+    const snap = await db.collection('classCounts').doc(classCountsDocId(pid,cid)).get();
+    if(snap.exists && snap.data().counts) return snap.data().counts;
+  }catch(e){ console.error('getClassGroupCounts failed', e); }
+  return {1:0,2:0,3:0,4:0,5:0,6:0};
+}
+async function getClassApplications(pid,cid){
+  try{
+    const start = appDocId(pid,cid,'');
+    const end = start + '\uf8ff';
+    const snap = await db.collection('applications')
+      .orderBy(firebase.firestore.FieldPath.documentId())
+      .startAt(start).endAt(end).get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){ console.error('getClassApplications failed', e); return []; }
+}
+async function getClassCount(pid,cid){
+  const counts = await getClassGroupCounts(pid,cid);
+  return Object.values(counts).reduce((a,b)=>a+b,0);
+}
+async function getProgramClassCounts(pid){
+  const out = {};
+  const program = findProgram(pid);
+  if(!program) return out;
+  await Promise.all(program.classes.map(async c=>{
+    const snap = await db.collection('classCounts').doc(classCountsDocId(pid,c.id)).get();
+    out[c.id] = (snap.exists && snap.data().n) ? snap.data().n : 0;
+  }));
+  return out;
+}
+async function getAllApplications(){
+  try{
+    const snap = await db.collection('applications').get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){ console.error('getAllApplications failed', e); return []; }
+}
+async function getAppliedSidSet(){
+  const all = await getAllApplications();
+  return new Set(all.map(a=>String(a.sid)));
+}
+async function getNotAppliedList(){
+  const [rosterSnap, appliedSet] = await Promise.all([
+    db.collection('rosterFull').get(),
+    getAppliedSidSet()
+  ]);
+  return rosterSnap.docs.map(d=>d.data()).filter(r=>!appliedSet.has(String(r.sid)));
+}
+async function getApplicationBySid(sid){
+  try{
+    const flagSnap = await db.collection('appliedFlags').doc(sid).get();
+    if(!flagSnap.exists) return null;
+    const flag = flagSnap.data();
+    const appSnap = await db.collection('applications').doc(appDocId(flag.programId, flag.classId, sid)).get();
+    return appSnap.exists ? appSnap.data() : null;
+  }catch(e){ console.error('getApplicationBySid failed', e); return null; }
+}
+async function deleteApplicationFirestore(sid){
+  const flagRef = db.collection('appliedFlags').doc(sid);
+  try{
+    await db.runTransaction(async (tx)=>{
+      const flagSnap = await tx.get(flagRef);
+      if(!flagSnap.exists) throw new Error('NOT_FOUND');
+      const flag = flagSnap.data();
+      const appRef = db.collection('applications').doc(appDocId(flag.programId, flag.classId, sid));
+      const countsRef = db.collection('classCounts').doc(classCountsDocId(flag.programId, flag.classId));
+      const countsSnap = await tx.get(countsRef); // 읽기는 전부 쓰기 전에 완료
+      const counts = (countsSnap.exists && countsSnap.data().counts) ? countsSnap.data().counts : {1:0,2:0,3:0,4:0,5:0,6:0};
+      const newCounts = Object.assign({}, counts, { [flag.group]: Math.max(0,(counts[flag.group]||0)-1) });
+      const n = Object.values(newCounts).reduce((a,b)=>a+b,0);
+      tx.delete(appRef);
+      tx.delete(flagRef);
+      tx.set(countsRef, { counts:newCounts, n });
+    });
+    return {success:true};
+  }catch(e){
+    if(e.message==='NOT_FOUND') return {success:false, reason:'not_found'};
+    console.error('deleteApplication failed', e);
+    return {success:false, reason:'error'};
+  }
+}
+async function editApplicationFirestore(sid, newPid, newCid, newGroup, newProgramName, newClassName){
+  const flagRef = db.collection('appliedFlags').doc(sid);
+  try{
+    let outcome = {success:false};
+    await db.runTransaction(async (tx)=>{
+      // ---- 읽기 (전부 먼저 수행: Firestore 트랜잭션 규칙) ----
+      const flagSnap = await tx.get(flagRef);
+      if(!flagSnap.exists) throw new Error('NOT_FOUND');
+      const oldFlag = flagSnap.data();
+      const oldAppRef = db.collection('applications').doc(appDocId(oldFlag.programId, oldFlag.classId, sid));
+      const oldAppSnap = await tx.get(oldAppRef);
+      const oldApp = oldAppSnap.exists ? oldAppSnap.data() : null;
+      const sameClass = oldFlag.programId===newPid && oldFlag.classId===newCid;
+      const newCountsRef = db.collection('classCounts').doc(classCountsDocId(newPid,newCid));
+      const newCountsSnap = await tx.get(newCountsRef);
+      let oldCountsRef=null, oldCountsSnap=null;
+      if(!sameClass){
+        oldCountsRef = db.collection('classCounts').doc(classCountsDocId(oldFlag.programId, oldFlag.classId));
+        oldCountsSnap = await tx.get(oldCountsRef);
+      }
+      // ---- 계산 ----
+      let newClassCounts = (newCountsSnap.exists && newCountsSnap.data().counts) ? newCountsSnap.data().counts : {1:0,2:0,3:0,4:0,5:0,6:0};
+      if(sameClass) newClassCounts = Object.assign({}, newClassCounts, { [oldFlag.group]: Math.max(0,(newClassCounts[oldFlag.group]||0)-1) });
+      const cls = findClass(findProgram(newPid), newCid);
+      const capacity = cls.capacity||26;
+      const plan = computeGroupPlan(newClassCounts, capacity);
+      if(!plan.groups[newGroup] || !plan.groups[newGroup].canJoin) throw new Error('GROUP_FULL');
+      const finalNewCounts = Object.assign({}, newClassCounts, { [newGroup]: (newClassCounts[newGroup]||0)+1 });
+      const finalN = Object.values(finalNewCounts).reduce((a,b)=>a+b,0);
+      // ---- 쓰기 ----
+      tx.set(newCountsRef, { counts: finalNewCounts, n: finalN });
+      if(!sameClass){
+        const oldCounts = (oldCountsSnap.exists && oldCountsSnap.data().counts) ? oldCountsSnap.data().counts : {1:0,2:0,3:0,4:0,5:0,6:0};
+        const decCounts = Object.assign({}, oldCounts, { [oldFlag.group]: Math.max(0,(oldCounts[oldFlag.group]||0)-1) });
+        const decN = Object.values(decCounts).reduce((a,b)=>a+b,0);
+        tx.set(oldCountsRef, { counts: decCounts, n: decN });
+        tx.delete(oldAppRef);
+      }
+      const newRecord = Object.assign({}, oldApp, { programId:newPid, programName:newProgramName, classId:newCid, className:newClassName, group:newGroup });
+      tx.set(db.collection('applications').doc(appDocId(newPid,newCid,sid)), newRecord);
+      tx.set(flagRef, { programId:newPid, programName:newProgramName, classId:newCid, className:newClassName, group:newGroup, appliedAt: oldFlag.appliedAt });
+      outcome = {success:true};
+    });
+    return outcome;
+  }catch(e){
+    if(e.message==='NOT_FOUND') return {success:false, reason:'not_found'};
+    if(e.message==='GROUP_FULL') return {success:false, reason:'group_full'};
+    console.error('editApplication failed', e);
+    return {success:false, reason:'error'};
+  }
+}
+
+// =========================================================
+// RENDER ROUTER
+// =========================================================
+function render(){
+  document.body.classList.toggle('admin-wrap', STATE.screen.startsWith('admin') && STATE.screen!=='adminLogin');
+  const app = document.getElementById('app');
+  if(STATE.countdownTimer){ clearInterval(STATE.countdownTimer); STATE.countdownTimer=null; }
+  if(STATE.groupPollTimer && STATE.screen!=='groupSelect'){ clearInterval(STATE.groupPollTimer); STATE.groupPollTimer=null; }
+  if(STATE.classPollTimer && STATE.screen!=='classSelect'){ clearInterval(STATE.classPollTimer); STATE.classPollTimer=null; }
+  switch(STATE.screen){
+    case 'home': renderHome(); break;
+    case 'studentLogin': app.innerHTML = renderStudentLogin(); break;
+    case 'confirmIdentity': app.innerHTML = renderConfirmIdentity(); break;
+    case 'alreadyApplied': app.innerHTML = renderAlreadyApplied(); break;
+    case 'briefing': app.innerHTML = renderBriefing(); break;
+    case 'waiting': app.innerHTML = renderWaiting(); startCountdown(); break;
+    case 'programSelect': app.innerHTML = `${topBar(true)}${trail(1)}<div class="card">불러오는 중...</div>`; renderProgramSelectAsync(); break;
+    case 'classSelect': renderClassSelectAsync(); break;
+    case 'groupSelect': renderGroupSelectAsync(); break;
+    case 'done': app.innerHTML = renderDone(); break;
+    case 'adminLogin': app.innerHTML = renderAdminLogin(); break;
+    case 'adminDashboard': renderAdminDashboardAsync(); break;
+    default: renderHome();
+  }
+}
+function goHome(){ STATE = {screen:'home', student:{sid:'',name:'',birth:'',verified:false,existingApp:null}, selection:{programId:null,classId:null,group:null}, admin:{loggedIn:STATE.admin.loggedIn,tab:'settings'}}; render(); }
+
+// ---------- Trail component ----------
+function trail(activeIdx){
+  const steps=['본인확인','프로그램','반 선택','모둠 선택','완료'];
+  return `<div class="trail">${steps.map((s,i)=>`
+    <div class="trail-step ${i<activeIdx?'done':''} ${i===activeIdx?'active':''}">
+      <div class="trail-node">${i<activeIdx?'✓':(i+1)}</div>
+      <div class="trail-label">${s}</div>
+    </div>`).join('')}</div>`;
+}
+function topBar(showHome){
+  return `${storageWarningBanner()}<div class="top-bar">
+    <div class="brand"><span class="dot"></span>미래융합 프로젝트 포럼</div>
+    ${showHome?`<button class="home-link" onclick="goHome()">처음으로</button>`:''}
+  </div>`;
+}
+
+// ---------- HOME ----------
+function isAppNotYetOpen(){
+  return !!CONFIG && (new Date() < new Date(CONFIG.openAt));
+}
+function renderHome(){
+  const app = document.getElementById('app');
+  const notYetOpen = isAppNotYetOpen();
+  app.innerHTML = `
+    ${topBar(false)}
+    <div class="hero">
+      <h1>🚀 2학년 미래융합 프로젝트 포럼</h1>
+      <p>나의 진로와 관심 분야에 맞는 프로그램을 선택하고,<br>함께할 반과 모둠을 신청해보세요!</p>
+    </div>
+    ${notYetOpen ? `
+    <div class="card">
+      <h3 style="margin-top:0;">⏰ 아직 신청 시간이 아니에요</h3>
+      <div class="msg-box">프로그램 신청은 아래 시각부터 시작됩니다.<br><b>${fmtDateTime(CONFIG.openAt)}</b> 이후<br>신청 시간이 열릴 때까지 잠시만 기다려주세요.</div>
+      <div class="countdown" id="home-cd">--:--:--</div>
+    </div>` : `
+    <div class="card">
+      <div class="success-box" style="margin:0;">✅ 지금 프로그램 신청이 가능합니다!<br><span style="font-size:12px;color:#6B7280;">(신청 시작: ${CONFIG ? fmtDateTime(CONFIG.openAt) : ''})</span></div>
+    </div>`}
+    <div class="card">
+      <h3 style="margin-top:0;">시작하기</h3>
+      <button class="btn accent" onclick="handleStudentApplyClick()">🙋 학생 신청하기</button>
+      <button class="btn secondary" onclick="openBriefingFromHome()">📋 프로그램 사전안내 보기</button>
+      <button class="btn ghost" onclick="STATE.screen='adminLogin'; render();">🔐 관리자</button>
+    </div>
+    <div class="footer-note">문의사항은 담당 선생님께 연락해주세요.</div>
+  `;
+  if(notYetOpen) startHomeCountdown();
+}
+function handleStudentApplyClick(){
+  if(isAppNotYetOpen()){
+    showAlert('지금은 프로그램 신청 시작 시간이 아니므로, 프로그램을 신청할 수 없습니다.\n신청 시작 일시: ' + fmtDateTime(CONFIG.openAt));
+    return;
+  }
+  STATE.screen = 'studentLogin';
+  render();
+}
+function startHomeCountdown(){
+  function tick(){
+    const diff = new Date(CONFIG.openAt) - new Date();
+    const cd = document.getElementById('home-cd');
+    if(!cd) return;
+    if(diff<=0){
+      clearInterval(STATE.countdownTimer); STATE.countdownTimer=null;
+      renderHome(); // 시간이 되면 버튼이 자동으로 활성화된 화면으로 즉시 갱신 (네트워크 조회 없음)
+      return;
+    }
+    const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), sec = Math.floor((diff%60000)/1000);
+    const dday = Math.floor(diff/86400000);
+    cd.textContent = (dday>0? dday+'일 ':'') + String(h%24).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  }
+  tick();
+  STATE.countdownTimer = setInterval(tick, 1000);
+}
+
+// ---------- STUDENT LOGIN ----------
+function renderStudentLogin(){
+  return `
+    ${topBar(true)}
+    ${trail(0)}
+    <div class="card">
+      <h3 style="margin-top:0;">본인 확인</h3>
+      <label>학번</label>
+      <input type="text" inputmode="numeric" id="in-sid" placeholder="예) 20305" value="${STATE.student.sid}" onkeydown="if(event.key==='Enter') submitStudentLogin()">
+      <label>이름 (한글)</label>
+      <input type="text" id="in-name" lang="ko" autocomplete="name" autocapitalize="off" spellcheck="false" placeholder="한글로 이름을 입력하세요" value="${STATE.student.name}" onkeydown="if(event.key==='Enter') submitStudentLogin()">
+      <label>생년월일 (8자리)</label>
+      <input type="text" inputmode="numeric" id="in-birth" placeholder="0000.00.00" maxlength="10" value="${STATE.student.birth}"
+        oninput="this.value=formatBirthInput(this.value)" onkeydown="if(event.key==='Enter') submitStudentLogin()">
+      <div id="login-err"></div>
+      <button class="btn" onclick="submitStudentLogin()">다음</button>
+    </div>
+  `;
+}
+async function submitStudentLogin(){
+  const sid = document.getElementById('in-sid').value.trim();
+  const name = document.getElementById('in-name').value.trim();
+  const birth = document.getElementById('in-birth').value.trim();
+  const errEl = document.getElementById('login-err');
+  if(!sid || !name || birth.replace(/\D/g,'').length<8){
+    errEl.innerHTML = `<div class="error-box">학번, 이름, 생년월일(8자리)을 모두 정확히 입력해주세요.</div>`;
+    return;
+  }
+  errEl.innerHTML = `<div style="color:var(--text-light);font-size:13px;">확인 중...</div>`;
+  const birthDigits = parseBirthToDigits(birth);
+  // 명단 전체를 내려받지 않고, 입력값을 해시로 변환해 서버에 "이 해시가 존재하는지"만 확인합니다 (개인정보 보호).
+  let hash;
+  try{ hash = await sha256Hex(rosterHashInput(sid, name, birthDigits)); }
+  catch(e){ errEl.innerHTML = `<div class="error-box">⚠️ 확인 중 오류가 발생했습니다. 다시 시도해주세요.</div>`; return; }
+  let matchExists = false;
+  try{
+    const snap = await db.collection('rosterHash').doc(hash).get();
+    matchExists = snap.exists;
+  }catch(e){
+    console.error('roster hash check failed', e);
+    errEl.innerHTML = `<div class="error-box">⚠️ 백엔드(Firebase)에 연결되지 않아 확인할 수 없습니다.<br>잠시 후 다시 시도해주세요.</div>`;
+    return;
+  }
+  if(!matchExists){
+    errEl.innerHTML = `<div class="error-box">입력하신 정보가 기초자료와 일치하지 않습니다.<br>학번·이름·생년월일을 다시 확인해주세요.</div>`;
+    return;
+  }
+  STATE.student = { sid, name, birth: formatBirthInput(birth), verified:true, existingApp:null };
+  STATE.screen = 'confirmIdentity';
+  render();
+}
+
+// ---------- CONFIRM IDENTITY ----------
+function renderConfirmIdentity(){
+  const s = STATE.student;
+  return `
+    ${topBar(true)}
+    ${trail(0)}
+    <div class="card">
+      <div class="success-box">✅ 입력하신 정보가 기초자료와 일치합니다. 정보가 정확합니다.</div>
+      <h3>본인이 맞나요?</h3>
+      <div class="summary-row"><span>학번</span><span>${s.sid}</span></div>
+      <div class="summary-row"><span>이름</span><span>${s.name}</span></div>
+      <div class="summary-row"><span>생년월일</span><span>${s.birth}</span></div>
+      <button class="btn teal" onclick="confirmIdentityYes()">네, 맞습니다</button>
+      <button class="btn secondary" onclick="STATE.screen='studentLogin'; render();">다시 입력할게요</button>
+    </div>
+  `;
+}
+async function confirmIdentityYes(){
+  try{
+    const snap = await db.collection('appliedFlags').doc(STATE.student.sid).get();
+    if(snap.exists){
+      STATE.student.existingApp = snap.data();
+      STATE.screen = 'alreadyApplied';
+      render();
+      return;
+    }
+  }catch(e){ console.error('check applied failed', e); }
+  STATE.screen = 'briefing';
+  STATE.briefingFromHome = false;
+  render();
+}
+async function proceedFromBriefing(){
+  fetchConfigOnly(); // 화면은 막지 않고 백그라운드로 최신화 (판단은 이미 최신 상태에 가까운 캐시된 값으로 즉시 진행)
+  const now = new Date();
+  const openAt = new Date(CONFIG.openAt);
+  if(now < openAt){
+    STATE.screen = 'waiting';
+    render();
+    return;
+  }
+  STATE.screen = 'programSelect';
+  render();
+}
+function openBriefingFromHome(){
+  STATE.briefingFromHome = true;
+  STATE.screen = 'briefing';
+  render();
+}
+
+// ---------- PRE-BRIEFING (사전안내) ----------
+function renderBriefing(){
+  const intro = `
+    <div class="card">
+      <h3 style="margin-top:0;">📋 2026학년도 미래융합 프로젝트 포럼 안내</h3>
+      <div class="summary-row"><span>일시</span><span>2026.07.21(화) 1~4교시</span></div>
+      <div class="summary-row"><span>대상</span><span>고등학교 2학년 전체</span></div>
+      <div class="summary-row"><span>운영 방식</span><span>학급 경계 없이 모둠(4~5인) 구성, 4차시 연속 프로젝트 수업</span></div>
+      <p style="font-size:13px;color:var(--text-light);line-height:1.7;margin-top:10px;">
+        본인의 진로·관심 분야에 맞는 트랙을 선택하면, 신청한 트랙의 지정 교실로 이동해 다른 학급 학생들과 새로운 모둠을 이루어 참여하게 됩니다. 아래 4개 트랙 소개를 꼭 읽어본 뒤 신청해주세요.
+      </p>
+    </div>
+  `;
+  const trackCards = TRACK_LIST.map(t=>`
+    <div class="card">
+      <h4 style="margin:0 0 6px;color:var(--primary-dark);">${t.badge} · ${t.name}</h4>
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">${t.classesLabel}</div>
+      <div style="font-size:14px;line-height:1.7;"><b>🎯 성취 목표</b><br>${t.goal}</div>
+      <button class="link-btn" id="toggle-${t.key}" onclick="toggleBriefingDetail('${t.key}')">차시별 활동 자세히 보기 ▾</button>
+      <div id="detail-${t.key}" style="display:none;margin-top:8px;">
+        ${t.sessions.map(s=>`<div style="margin-bottom:10px;padding:10px;background:#F8F9FD;border-radius:10px;">
+          <div style="font-weight:700;font-size:13px;color:var(--primary);">${s.title}</div>
+          <div style="font-size:13px;color:var(--text-light);margin-top:4px;">${s.content}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  const cta = STATE.briefingFromHome
+    ? `<button class="btn secondary" onclick="goHome()">처음으로</button>`
+    : `<button class="btn accent" onclick="proceedFromBriefing()">확인했습니다, 신청하러 가기</button>
+       <button class="btn secondary" onclick="goHome()">처음으로</button>`;
+  return `${topBar(true)}${STATE.briefingFromHome?'':trail(0)}${intro}${trackCards}<div class="card">${cta}</div>`;
+}
+function toggleBriefingDetail(key){
+  const el = document.getElementById('detail-'+key);
+  const btn = document.getElementById('toggle-'+key);
+  const show = el.style.display==='none';
+  el.style.display = show ? 'block' : 'none';
+  btn.textContent = show ? '차시별 활동 접기 ▴' : '차시별 활동 자세히 보기 ▾';
+}
+
+// ---------- ALREADY APPLIED ----------
+function renderAlreadyApplied(){
+  const a = STATE.student.existingApp;
+  return `
+    ${topBar(true)}
+    <div class="card">
+      <h3 style="margin-top:0;">✅ 이미 신청을 완료했어요</h3>
+      ${a ? `
+      <div class="summary-row"><span>프로그램</span><span>${a.programName}</span></div>
+      <div class="summary-row"><span>반</span><span>${a.className}</span></div>
+      <div class="summary-row"><span>모둠</span><span>${a.group}모둠</span></div>
+      <div class="summary-row"><span>신청 시각</span><span>${fmtDateTime(a.appliedAt)}</span></div>
+      ` : `<p>신청 내역을 불러올 수 없습니다.</p>`}
+      <div class="msg-box" style="margin-top:14px;">신청 내용을 변경하고 싶다면 담당 선생님(관리자)에게 문의해주세요. 학생은 직접 수정할 수 없습니다.</div>
+      <button class="btn" onclick="goHome()">처음으로</button>
+    </div>
+  `;
+}
+
+// ---------- WAITING ----------
+function renderWaiting(){
+  return `
+    ${topBar(true)}
+    <div class="card">
+      <h3 style="margin-top:0;">⏰ 아직 신청 시간이 아니에요</h3>
+      <div class="msg-box">프로그램 신청은 아래 시각부터 시작됩니다.<br><b>${fmtDateTime(CONFIG.openAt)}</b> 이후<br>신청 시간이 열릴 때까지 잠시만 기다려주세요.</div>
+      <div class="countdown" id="cd">--:--:--</div>
+      <button class="btn secondary" onclick="checkTimeAgain()">다시 확인하기</button>
+      <button class="btn ghost" onclick="goHome()">처음으로</button>
+    </div>
+  `;
+}
+function startCountdown(){
+  function tick(){
+    const diff = new Date(CONFIG.openAt) - new Date();
+    const cd = document.getElementById('cd');
+    if(!cd) return;
+    if(diff<=0){ cd.textContent = '신청 시작!'; clearInterval(STATE.countdownTimer); STATE.countdownTimer=null; confirmIdentityYes(); return; }
+    const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), sec = Math.floor((diff%60000)/1000);
+    const dday = Math.floor(diff/86400000);
+    cd.textContent = (dday>0? dday+'일 ':'') + String(h%24).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  }
+  tick();
+  STATE.countdownTimer = setInterval(tick, 1000);
+}
+function checkTimeAgain(){ confirmIdentityYes(); }
+
+// ---------- PROGRAM SELECT ----------
+async function renderProgramSelectAsync(){
+  const app = document.getElementById('app');
+  if(!CONFIG.programs.length){
+    app.innerHTML = `${topBar(true)}${trail(1)}<div class="card"><div class="msg-box">아직 등록된 프로그램이 없습니다. 관리자에게 문의해주세요.</div></div>`;
+    return;
+  }
+  app.innerHTML = `
+    ${topBar(true)}
+    ${trail(1)}
+    <div class="card">
+      <h3 style="margin-top:0;">진로·관심 분야에 맞는<br>프로그램을 선택하세요</h3>
+      ${CONFIG.programs.map(p=>{
+        const meta = getTrackMeta(p.id);
+        return `
+        <div class="list-card" style="border-left:6px solid ${meta.color};" onclick="selectProgram('${p.id}')">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:${meta.color}1A;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;">${meta.icon}</div>
+            <div>
+              <div class="title">${p.name}</div>
+              <div class="meta">${p.classes.length}개 반 운영${meta.goal?' · '+meta.goal.slice(0,28)+'…':''}</div>
+            </div>
+          </div>
+          <span class="badge" style="background:${meta.color}1A;color:${meta.color};">선택 →</span>
+        </div>
+      `;}).join('')}
+    </div>
+  `;
+}
+function selectProgram(pid){
+  STATE.selection.programId = pid;
+  STATE.selection.classId = null;
+  STATE.selection.group = null;
+  STATE.screen = 'classSelect';
+  render();
+}
+
+// ---------- CLASS SELECT ----------
+async function renderClassSelectAsync(){
+  const app = document.getElementById('app');
+  app.innerHTML = `${topBar(true)}${trail(2)}<div class="card">불러오는 중...</div>`;
+  const program = findProgram(STATE.selection.programId);
+  if(!program){ goHome(); return; }
+  const meta = getTrackMeta(program.id);
+  const countsByClass = await getProgramClassCounts(program.id);
+  app.innerHTML = `
+    ${topBar(true)}
+    ${trail(2)}
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:${meta.color}1A;display:flex;align-items:center;justify-content:center;font-size:18px;">${meta.icon}</div>
+        <h3 style="margin:0;">${program.name}</h3>
+      </div>
+      <div style="font-size:14px;color:var(--text-light);margin-bottom:8px;">반을 선택하세요</div>
+      <div id="class-rows">${renderClassRows(program, countsByClass, meta)}</div>
+      <button class="btn secondary" onclick="STATE.screen='programSelect'; render();">← 프로그램 다시 선택</button>
+    </div>
+  `;
+  // 다른 학생의 신청으로 인원이 바뀌는 것을 실시간에 가깝게 반영 (수 초 간격 자동 새로고침)
+  STATE.classPollTimer = setInterval(async ()=>{
+    if(STATE.screen!=='classSelect'){ clearInterval(STATE.classPollTimer); STATE.classPollTimer=null; return; }
+    if(document.hidden) return;
+    const freshCounts = await getProgramClassCounts(program.id);
+    const rowsEl = document.getElementById('class-rows');
+    if(rowsEl) rowsEl.innerHTML = renderClassRows(program, freshCounts, meta);
+  }, 8000);
+}
+function renderClassRows(program, countsByClass, meta){
+  let rows='';
+  program.classes.forEach((c)=>{
+    const n = countsByClass[c.id] || 0;
+    const capacity = c.capacity || 26;
+    const full = n>=capacity;
+    rows += `<div class="list-card ${full?'full':''}" style="border-left:6px solid ${full?'#D1D5DB':meta.color};" ${full?'':`onclick="selectClass('${c.id}')"`}>
+      <div><div class="title">${c.name}</div><div class="meta">신청 인원 ${n} / ${capacity}명</div></div>
+      <span class="badge ${full?'full':''}" style="${full?'':'background:'+meta.color+'1A;color:'+meta.color+';'}">${full?'마감':n+'명'}</span>
+    </div>`;
+  });
+  return rows || '<div class="msg-box">등록된 반이 없습니다.</div>';
+}
+function selectClass(cid){
+  STATE.selection.classId = cid;
+  STATE.selection.group = null;
+  STATE.screen = 'groupSelect';
+  render();
+}
+
+// ---------- GROUP SELECT ----------
+async function renderGroupSelectAsync(){
+  const app = document.getElementById('app');
+  app.innerHTML = `${topBar(true)}${trail(3)}<div class="card">불러오는 중...</div>`;
+  const program = findProgram(STATE.selection.programId);
+  const cls = program ? findClass(program, STATE.selection.classId) : null;
+  if(!program || !cls){ goHome(); return; }
+  const meta = getTrackMeta(program.id);
+  const capacity = cls.capacity || 26;
+  const counts = await getClassGroupCounts(program.id, cls.id);
+  const plan = computeGroupPlan(counts, capacity);
+  STATE.lastGroupPlan = plan;
+  STATE.lastGroupMeta = meta;
+  app.innerHTML = `
+    ${topBar(true)}
+    ${trail(3)}
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:${meta.color}1A;display:flex;align-items:center;justify-content:center;font-size:18px;">${meta.icon}</div>
+        <h3 style="margin:0;">${cls.name}</h3>
+      </div>
+      <div style="font-size:14px;color:var(--text-light);margin-bottom:8px;">모둠을 선택하세요 (전체 <span id="grp-total">${plan.n}</span>/${capacity}명)</div>
+      <div class="choice-grid" id="grp-grid">${renderGroupGrid(plan, meta)}</div>
+      <button class="btn" id="apply-btn" ${STATE.selection.group?'':'disabled'} onclick="confirmApply()">신청하기</button>
+      <button class="btn secondary" onclick="STATE.screen='classSelect'; render();">← 반 다시 선택</button>
+    </div>
+  `;
+  // 다른 학생의 신청으로 정원이 바뀌는 것을 실시간에 가깝게 반영 (수 초 간격 자동 새로고침)
+  STATE.groupPollTimer = setInterval(async ()=>{
+    if(STATE.screen!=='groupSelect'){ clearInterval(STATE.groupPollTimer); STATE.groupPollTimer=null; return; }
+    if(document.hidden) return; // 화면을 보고 있지 않을 때는 서버 부하를 줄이기 위해 건너뜀
+    const freshCounts = await getClassGroupCounts(program.id, cls.id);
+    const freshPlan = computeGroupPlan(freshCounts, capacity);
+    STATE.lastGroupPlan = freshPlan;
+    const gridEl = document.getElementById('grp-grid');
+    const totalEl = document.getElementById('grp-total');
+    if(gridEl) gridEl.innerHTML = renderGroupGrid(freshPlan, meta);
+    if(totalEl) totalEl.textContent = freshPlan.n;
+    // 내가 선택했던 모둠이 그 사이 마감되면 선택 해제
+    if(STATE.selection.group && !freshPlan.groups[STATE.selection.group].canJoin){
+      STATE.selection.group = null;
+      const btn = document.getElementById('apply-btn');
+      if(btn) btn.disabled = true;
+    }
+  }, 8000); // 신청 몰림 시 서버 부하를 줄이기 위해 폴링 간격을 다소 여유 있게 설정
+}
+function renderGroupGrid(plan, meta){
+  let grid='';
+  for(let g=1; g<=6; g++){
+    const info = plan.groups[g];
+    const sel = STATE.selection.group===g;
+    const cls2 = !info.active ? 'disabled' : (!info.canJoin && !sel ? 'full' : (sel?'selected':''));
+    let dots='';
+    if(info.active){
+      for(let i=1;i<=info.displayMax;i++){
+        const filled = i<=info.count;
+        dots += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 2px;background:${filled?(sel?'var(--accent)':meta.color):'#E4E9F7'};"></span>`;
+      }
+    }
+    grid += `<div class="choice-card ${cls2}" ${info.active && (info.canJoin||sel) ? `onclick="selectGroup(${g})"`:''} style="${sel?'':(info.active?'border-color:'+meta.color+'55;':'')}">
+      <div class="num" style="${sel?'':'color:'+meta.color+';'}">${g}모둠</div>
+      <div class="sub">${info.active ? (info.count+' / '+info.displayMax+'명') : '선택불가'}</div>
+      <div style="margin-top:6px;">${dots}</div>
+    </div>`;
+  }
+  return grid;
+}
+function selectGroup(g){
+  // 화면에 이미 있는 최신 정원 데이터로 즉시 반영 (네트워크 재조회 없이 바로 선택되도록 하여 지연 제거)
+  STATE.selection.group = g;
+  const plan = STATE.lastGroupPlan, meta = STATE.lastGroupMeta;
+  const gridEl = document.getElementById('grp-grid');
+  const btn = document.getElementById('apply-btn');
+  if(gridEl && plan && meta) gridEl.innerHTML = renderGroupGrid(plan, meta);
+  if(btn) btn.disabled = false;
+}
+
+async function confirmApply(){
+  const btn = document.getElementById('apply-btn');
+  if(btn){ btn.disabled = true; btn.textContent='처리 중...'; }
+  checkStorageHealth();
+  if(!STORAGE_OK){
+    showAlert('⚠️ 백엔드(Firebase)에 연결되지 않아 신청을 처리할 수 없습니다.\n잠시 후 다시 시도해주세요.');
+    render();
+    return;
+  }
+  const program = findProgram(STATE.selection.programId);
+  const cls = findClass(program, STATE.selection.classId);
+  const g = STATE.selection.group;
+  const capacity = cls.capacity || 26;
+  const sid = STATE.student.sid;
+  const appRef = db.collection('applications').doc(appDocId(program.id, cls.id, sid));
+  const flagRef = db.collection('appliedFlags').doc(sid);
+  const countsRef = db.collection('classCounts').doc(classCountsDocId(program.id, cls.id));
+  let outcome = { success:false, reason:'error' };
+  try{
+    await db.runTransaction(async (tx)=>{
+      const flagSnap = await tx.get(flagRef);
+      if(flagSnap.exists){ outcome = { success:false, reason:'already_applied' }; throw new Error('ABORT'); }
+      const countsSnap = await tx.get(countsRef);
+      const counts = (countsSnap.exists && countsSnap.data().counts) ? countsSnap.data().counts : {1:0,2:0,3:0,4:0,5:0,6:0};
+      const plan = computeGroupPlan(counts, capacity);
+      if(!plan.groups[g] || !plan.groups[g].canJoin){ outcome = { success:false, reason:'group_full' }; throw new Error('ABORT'); }
+      const appliedAt = new Date().toISOString();
+      const record = {
+        sid, name: STATE.student.name, birth: STATE.student.birth,
+        programId: program.id, programName: program.name,
+        classId: cls.id, className: cls.name,
+        group: g, appliedAt
+      };
+      const flagData = { programId:program.id, programName:program.name, classId:cls.id, className:cls.name, group:g, appliedAt };
+      const newCounts = Object.assign({}, counts, { [g]: (counts[g]||0)+1 });
+      const n = Object.values(newCounts).reduce((a,b)=>a+b,0);
+      tx.set(appRef, record);
+      tx.set(flagRef, flagData);
+      tx.set(countsRef, { counts:newCounts, n });
+      outcome = { success:true, record };
+    });
+  }catch(e){
+    if(e.message!=='ABORT'){ console.error('submit transaction failed', e); outcome = { success:false, reason:'error' }; }
+  }
+  if(!outcome.success){
+    if(outcome.reason==='already_applied'){ showAlert('이미 신청 내역이 존재합니다.'); goHome(); return; }
+    if(outcome.reason==='group_full'){ showAlert('죄송합니다. 방금 다른 학생이 신청하여 해당 모둠 정원이 찼습니다. 다시 선택해주세요.'); render(); return; }
+    showAlert('⚠️ 신청 처리 중 오류가 발생했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.');
+    render();
+    return;
+  }
+  STATE.student.existingApp = outcome.record;
+  STATE.screen = 'done';
+  render();
+}
+
+// ---------- DONE ----------
+function renderDone(){
+  const a = STATE.student.existingApp;
+  return `
+    ${topBar(false)}
+    ${trail(4)}
+    <div class="card" style="text-align:center;">
+      <div style="font-size:44px;">🎉</div>
+      <h3>신청이 완료되었습니다!</h3>
+      <div style="text-align:left;">
+        <div class="summary-row"><span>프로그램</span><span>${a.programName}</span></div>
+        <div class="summary-row"><span>반</span><span>${a.className}</span></div>
+        <div class="summary-row"><span>모둠</span><span>${a.group}모둠</span></div>
+      </div>
+      <button class="btn" onclick="goHome()">처음으로</button>
+    </div>
+  `;
+}
+
+// =========================================================
+// ADMIN
+// =========================================================
+function renderAdminLogin(){
+  return `
+    ${topBar(true)}
+    <div class="card">
+      <h3 style="margin-top:0;">🔐 관리자 로그인</h3>
+      <label>이메일</label>
+      <input type="email" id="admin-email" placeholder="관리자 이메일" onkeydown="if(event.key==='Enter') adminLoginSubmit()">
+      <label>비밀번호</label>
+      <input type="password" id="admin-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') adminLoginSubmit()">
+      <div id="admin-login-err"></div>
+      <button class="btn" onclick="adminLoginSubmit()">로그인</button>
+    </div>
+  `;
+}
+async function adminLoginSubmit(){
+  const email = document.getElementById('admin-email').value.trim();
+  const pw = document.getElementById('admin-pw').value;
+  const errEl = document.getElementById('admin-login-err');
+  if(!email || !pw){ errEl.innerHTML = `<div class="error-box">이메일과 비밀번호를 모두 입력해주세요.</div>`; return; }
+  try{
+    await auth.signInWithEmailAndPassword(email, pw);
+    STATE.admin.loggedIn = true;
+    STATE.screen = 'adminDashboard';
+    render();
+    refreshConfigAndRoster().then(render); // 로그인 직후 한 번만 최신화 (화면은 이미 표시된 뒤 조용히 갱신)
+  }catch(e){
+    console.error('admin login failed', e);
+    errEl.innerHTML = `<div class="error-box">이메일 또는 비밀번호가 올바르지 않습니다.</div>`;
+  }
+}
+function adminTab(tab){ STATE.admin.tab = tab; render(); }
+
+async function renderAdminDashboardAsync(){
+  const app = document.getElementById('app');
+  const tabs = [['settings','⚙️ 설정'],['roster','📋 기초자료'],['status','📊 신청현황'],['notyet','🔍 미신청자'],['manage','✏️ 신청관리']];
+  const openStatus = isAppNotYetOpen()
+    ? `⏰ 신청 시작 예정: ${fmtDateTime(CONFIG.openAt)}`
+    : `✅ 신청 진행 중 (시작: ${fmtDateTime(CONFIG.openAt)})`;
+  app.innerHTML = `
+    ${topBar(false)}
+    <div class="badge" style="display:block;width:fit-content;margin-bottom:10px;background:${isAppNotYetOpen()?'#FFF3E8':'#E9FBF8'};color:${isAppNotYetOpen()?'var(--accent)':'#0F766E'};">${openStatus}</div>
+    <div class="top-bar" style="margin-top:-6px;">
+      <button class="home-link" onclick="manualSyncRefresh()">🔄 최신 자료 새로고침</button>
+      <button class="home-link" onclick="adminLogoutHome()">로그아웃</button>
+    </div>
+    <div class="tabs">${tabs.map(t=>`<div class="tab ${STATE.admin.tab===t[0]?'active':''}" onclick="adminTab('${t[0]}')">${t[1]}</div>`).join('')}</div>
+    <div id="admin-body"><div class="card">불러오는 중...</div></div>
+  `;
+  const body = document.getElementById('admin-body');
+  if(STATE.admin.tab==='settings') body.innerHTML = renderAdminSettings();
+  else if(STATE.admin.tab==='roster') body.innerHTML = renderAdminRoster();
+  else if(STATE.admin.tab==='status') await renderAdminStatus(body);
+  else if(STATE.admin.tab==='notyet') await renderAdminNotYet(body);
+  else if(STATE.admin.tab==='manage') await renderAdminManage(body);
+}
+async function manualSyncRefresh(){
+  await refreshConfigAndRoster();
+  render();
+}
+function adminLogoutHome(){ STATE.admin.loggedIn=false; if(auth) auth.signOut(); goHome(); }
+
+// ----- Settings tab -----
+function renderAdminSettings(){
+  return `
+    <div class="card">
+      <h3 style="margin-top:0;">신청 시작 일시</h3>
+      <div class="summary-row"><span>현재 설정된 시작 일시</span><span>${fmtDateTime(CONFIG.openAt)}</span></div>
+      <label>신청 가능 시작 시각 변경</label>
+      <input type="datetime-local" id="cfg-open" value="${CONFIG.openAt}" onkeydown="if(event.key==='Enter'){event.preventDefault();saveOpenAt();}">
+      <button class="btn small accent" style="margin-top:12px;width:auto;" onclick="saveOpenAt()">저장</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">관리자 비밀번호 변경</h3>
+      <label>새 비밀번호 (6자 이상)</label>
+      <input type="password" id="cfg-pw" placeholder="새 비밀번호 입력" onkeydown="if(event.key==='Enter') saveAdminPw()">
+      <button class="btn small accent" style="margin-top:12px;width:auto;" onclick="saveAdminPw()">변경</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">프로그램 / 반 관리</h3>
+      <div class="msg-box" style="margin-bottom:14px;">
+        이미 등록되어 있던 반의 정원이 예전 값(26명)으로 보인다면, 아래 버튼으로 교실 수용 인원 기준(1·2·5반 24명 / 4·6반 25명 / 3반 26명)을 한 번에 적용할 수 있습니다.
+        <button class="btn teal small" style="margin-top:8px;width:auto;" onclick="applyStandardCapacities()">🏫 표준 반 이름·정원 일괄 적용</button>
+      </div>
+      <div class="inline-form">
+        <input type="text" id="new-prog-name" placeholder="새 프로그램 이름 (예: AI와 미래사회)" onkeydown="if(event.key==='Enter') addProgram()">
+        <button class="btn small" onclick="addProgram()">+ 프로그램 추가</button>
+      </div>
+      <div style="margin-top:16px;">
+        ${CONFIG.programs.map(p=>`
+          <div class="prog-block">
+            <h4>${p.name} <button class="link-btn" onclick="removeProgram('${p.id}')" style="color:var(--coral);">삭제</button></h4>
+            <div>${p.classes.map(c=>`<span class="class-chip"><b style="cursor:pointer;text-decoration:underline;" onclick="editClassName('${p.id}','${c.id}')" title="이름 수정">${c.name} ✏️</b> <b style="cursor:pointer;text-decoration:underline;" onclick="editClassCapacity('${p.id}','${c.id}')" title="정원 수정">(정원 ${c.capacity||26}명 ✏️)</b> <button onclick="removeClass('${p.id}','${c.id}')">×</button></span>`).join('') || '<span style="font-size:13px;color:var(--text-light);">등록된 반 없음</span>'}</div>
+            <div class="inline-form">
+              <input type="text" id="new-class-${p.id}" placeholder="반 이름 (예: 2학년 7반)" style="flex:2;" onkeydown="if(event.key==='Enter') addClass('${p.id}')">
+              <input type="number" id="new-class-cap-${p.id}" placeholder="정원" value="26" style="flex:1;min-width:60px;" onkeydown="if(event.key==='Enter') addClass('${p.id}')">
+              <button class="btn small" onclick="addClass('${p.id}')">+ 반 추가</button>
+            </div>
+          </div>
+        `).join('') || '<div class="msg-box">등록된 프로그램이 없습니다. 위에서 추가해주세요.</div>'}
+      </div>
+    </div>
+  `;
+}
+function saveConfigInBackground(showSuccessNow, successMsg){
+  if(showSuccessNow) showAlert(successMsg);
+  db.collection('config').doc('main').set(CONFIG).catch(e=>{
+    console.error('saveConfig failed', e);
+    showAlert('⚠️ 방금 처리한 내용이 서버(Firebase)에 저장되지 못했습니다.\n네트워크 상태를 확인하고 "🔄 최신 자료 새로고침" 후 다시 시도해주세요.');
+  });
+}
+function saveOpenAt(){
+  CONFIG.openAt = document.getElementById('cfg-open').value;
+  saveConfigInBackground(true, '저장되었습니다.');
+  render(); // 대시보드 상단 배지와 설정 화면의 표시값을 즉시 갱신
+}
+function saveAdminPw(){
+  const pw = document.getElementById('cfg-pw').value.trim();
+  if(!pw || pw.length<6){ showAlert('비밀번호는 6자 이상 입력해주세요.'); return; }
+  if(!auth.currentUser){ showAlert('로그인 상태를 확인할 수 없습니다. 다시 로그인해주세요.'); return; }
+  auth.currentUser.updatePassword(pw).then(()=>{
+    showAlert('비밀번호가 변경되었습니다.');
+  }).catch(e=>{
+    console.error('updatePassword failed', e);
+    showAlert('⚠️ 비밀번호 변경에 실패했습니다. 보안을 위해 재로그인 후 다시 시도해주세요.');
+  });
+}
+function addProgram(){
+  const el = document.getElementById('new-prog-name');
+  const name = el.value.trim();
+  if(!name) return;
+  CONFIG.programs.push({ id: randId(), name, classes: [] });
+  render();
+  saveConfigInBackground(false);
+}
+function removeProgram(pid){
+  showConfirmDialog('이 프로그램을 삭제하시겠습니까?\n(신청 데이터는 삭제되지 않으니 신청 현황에서 확인 가능합니다)', ()=>{
+    CONFIG.programs = CONFIG.programs.filter(p=>p.id!==pid);
+    render();
+    saveConfigInBackground(false);
+  });
+}
+function addClass(pid){
+  const el = document.getElementById('new-class-'+pid);
+  const capEl = document.getElementById('new-class-cap-'+pid);
+  const name = el.value.trim();
+  if(!name) return;
+  const capacity = parseInt(capEl.value) || 26;
+  const p = findProgram(pid);
+  p.classes.push({ id: randId(), name, capacity });
+  render();
+  saveConfigInBackground(false);
+}
+function applyStandardCapacities(){
+  // 기존에 이미 저장되어 있던 반(예전 이름/정원)에도 학급 배정 기준을 그대로 적용
+  // 프로그램별 반 순서 기준: 트랙A(1,2반)=2학년1반24명,2학년2반24명 / 트랙B(4,5반)=2학년4반25명,2학년5반24명
+  //                          트랙C(3반)=2학년3반26명 / 트랙D(6반)=2학년6반25명
+  const stdMap = {
+    trackA: [ {name:'2학년 1반', capacity:24}, {name:'2학년 2반', capacity:24} ],
+    trackB: [ {name:'2학년 4반', capacity:25}, {name:'2학년 5반', capacity:24} ],
+    trackC: [ {name:'2학년 3반', capacity:26} ],
+    trackD: [ {name:'2학년 6반', capacity:25} ]
+  };
+  let applied = 0;
+  CONFIG.programs.forEach(p=>{
+    const std = stdMap[p.id];
+    if(!std) return;
+    p.classes.forEach((c,i)=>{ if(std[i]!==undefined){ c.name = std[i].name; c.capacity = std[i].capacity; applied++; } });
+  });
+  render();
+  saveConfigInBackground(true, applied>0
+    ? `표준 반 이름·정원이 적용되었습니다. (총 ${applied}개 반)`
+    : '일치하는 반을 찾지 못했습니다. 각 반의 ✏️를 눌러 직접 입력해주세요.');
+}
+function editClassName(pid, cid){
+  const p = findProgram(pid);
+  const c = findClass(p, cid);
+  showPromptDialog(`반 이름을 입력하세요.`, c.name, (val)=>{
+    const name = (val||'').trim();
+    if(!name){ showAlert('반 이름을 입력해주세요.'); return; }
+    c.name = name;
+    render();
+    saveConfigInBackground(false);
+  });
+}
+function editClassCapacity(pid, cid){
+  const p = findProgram(pid);
+  const c = findClass(p, cid);
+  showPromptDialog(`"${c.name}"의 정원(최대 신청 인원)을 입력하세요.`, c.capacity||26, (val)=>{
+    const n = parseInt(val);
+    if(!n || n<4 || n>30){ showAlert('정원은 4~30 사이의 숫자로 입력해주세요.'); return; }
+    c.capacity = n;
+    render();
+    saveConfigInBackground(false);
+  }, 'number');
+}
+function removeClass(pid,cid){
+  showConfirmDialog('이 반을 삭제하시겠습니까?', ()=>{
+    const p = findProgram(pid);
+    p.classes = p.classes.filter(c=>c.id!==cid);
+    render();
+    saveConfigInBackground(false);
+  });
+}
+
+// ----- Roster tab -----
+function renderAdminRoster(){
+  return `
+    <div class="card">
+      <h3 style="margin-top:0;">기초자료(학생 명단) 등록</h3>
+      <div class="msg-box">
+        아래 형식으로 한 줄에 한 명씩 입력 후 저장하세요.<br>
+        <b>학번,이름,생년월일</b><br>
+        예) 20305,홍길동,2009.03.15<br>
+        엑셀에서 세 개의 열(학번/이름/생년월일)을 복사해 붙여넣어도 자동으로 인식됩니다(탭 구분 지원).
+      </div>
+      <textarea id="roster-text" placeholder="20101,김민준,2009.01.05
+20102,이서연,2009.02.11
+..."></textarea>
+      <button class="btn accent" onclick="saveRoster()">저장 (기존 명단에 이어 추가)</button>
+      <button class="btn ghost" onclick="clearRoster()">전체 명단 초기화</button>
+      <div id="roster-msg"></div>
+      <div style="margin-top:14px;font-size:14px;color:var(--text-light);">현재 등록된 학생 수: <b>${ROSTER.length}명</b></div>
+    </div>
+  `;
+}
+async function saveRoster(){
+  const text = document.getElementById('roster-text').value.trim();
+  if(!text) return;
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let rows=[], errors=0;
+  for(const line of lines){
+    const parts = line.split(/[,\t]/).map(s=>s.trim());
+    if(parts.length<3 || !parts[0] || !parts[1] || !parts[2]){ errors++; continue; }
+    const [sid,name,birth] = parts;
+    rows.push({ sid, name, birth });
+  }
+  if(rows.length===0){
+    document.getElementById('roster-msg').innerHTML = `<div class="error-box">저장할 수 있는 줄이 없습니다. 형식을 확인해주세요.</div>`;
+    return;
+  }
+  document.getElementById('roster-msg').innerHTML = `<div style="color:var(--text-light);font-size:13px;">저장 중... (${rows.length}건)</div>`;
+  try{
+    // 학번당 최대 500개 문서까지 하나의 배치(batch)로 묶어 원자적으로 기록
+    for(let i=0; i<rows.length; i+=200){
+      const chunk = rows.slice(i, i+200);
+      const batch = db.batch();
+      for(const r of chunk){
+        const birthDigits = parseBirthToDigits(r.birth);
+        const hash = await sha256Hex(rosterHashInput(r.sid, r.name, birthDigits));
+        batch.set(db.collection('rosterFull').doc(String(r.sid)), { sid:r.sid, name:r.name, birth:formatBirthInput(birthDigits) });
+        batch.set(db.collection('rosterHash').doc(hash), { sid: r.sid });
+      }
+      await batch.commit();
+    }
+  }catch(e){
+    console.error('saveRoster failed', e);
+    document.getElementById('roster-msg').innerHTML = `<div class="error-box">⚠️ 저장에 실패했습니다. 백엔드(Firebase) 연결 상태를 확인해주세요.</div>`;
+    return;
+  }
+  // 서버 재조회 없이 방금 저장한 내용을 로컬 명단에 바로 반영 (왕복 1회 절약)
+  const map = new Map(ROSTER.map(r=>[String(r.sid), r]));
+  rows.forEach(r=>map.set(String(r.sid), r));
+  ROSTER = Array.from(map.values());
+  document.getElementById('roster-msg').innerHTML = `<div class="success-box">${rows.length}건 저장 완료 (형식 오류 ${errors}건)</div>`;
+  document.getElementById('roster-text').value='';
+  setTimeout(render, 900);
+}
+function clearRoster(){
+  showConfirmDialog('전체 학생 명단을 삭제하시겠습니까?\n이미 신청한 학생의 신청 데이터는 삭제되지 않습니다.', async ()=>{
+    try{
+      const [fullSnap, hashSnap] = await Promise.all([
+        db.collection('rosterFull').get(),
+        db.collection('rosterHash').get()
+      ]);
+      const allDocs = [...fullSnap.docs, ...hashSnap.docs];
+      for(let i=0; i<allDocs.length; i+=400){
+        const batch = db.batch();
+        allDocs.slice(i,i+400).forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+      }
+      ROSTER = [];
+      render();
+    }catch(e){
+      console.error('clearRoster failed', e);
+      showAlert('⚠️ 명단 삭제가 서버에 반영되지 못했습니다. 다시 시도해주세요.');
+    }
+  });
+}
+
+// ----- Status tab -----
+async function renderAdminStatus(body){
+  body.innerHTML = `<div class="card">불러오는 중...</div>`;
+  const all = await getAllApplications();
+  const countByClass = {};
+  all.forEach(a=>{ countByClass[a.classId] = (countByClass[a.classId]||0)+1; });
+  const summaryRows = [];
+  CONFIG.programs.forEach(p=>{
+    p.classes.forEach(c=>{
+      const n = countByClass[c.id] || 0;
+      const cap = c.capacity || 26;
+      const full = n>=cap;
+      summaryRows.push(`<tr><td>${p.name.split('(')[0].trim()}</td><td>${c.name}</td><td>${n} / ${cap}명</td><td>${full?'<span class="badge full">마감</span>':'<span class="badge">모집중</span>'}</td></tr>`);
+    });
+  });
+  const rows = all.map(a=>`<tr><td>${a.programName}</td><td>${a.className}</td><td>${a.group}모둠</td><td>${a.sid}</td><td>${a.name}</td><td>${a.birth}</td><td>${fmtDateTime(a.appliedAt)}</td></tr>`).join('');
+  body.innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;">반별 신청 인원 현황</h3>
+      <div class="table-wrap">
+        <table><thead><tr><th>프로그램</th><th>반</th><th>신청 인원</th><th>상태</th></tr></thead>
+        <tbody>${summaryRows.join('') || '<tr><td colspan="4" style="text-align:center;color:#999;">등록된 반 없음</td></tr>'}</tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">전체 신청 현황 (${all.length}명)</h3>
+      <button class="btn accent small" onclick="exportAllApplications()">⬇ 신청현황 엑셀 다운로드</button>
+      <button class="btn teal small" onclick="exportAttendanceBook()">📋 반별 출석부 다운로드 (학번순)</button>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table><thead><tr><th>프로그램</th><th>반</th><th>모둠</th><th>학번</th><th>이름</th><th>생년월일</th><th>신청시각</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">신청 내역 없음</td></tr>'}</tbody></table>
+      </div>
+    </div>
+  `;
+  window._allAppsCache = all;
+}
+function exportAllApplications(){
+  const all = window._allAppsCache || [];
+  const data = all.map(a=>({ 프로그램:a.programName, 반:a.className, 모둠:a.group+'모둠', 학번:a.sid, 이름:a.name, 생년월일:a.birth, 신청시각:fmtDateTime(a.appliedAt) }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '신청현황');
+  XLSX.writeFile(wb, `프로그램신청현황_${todayStr()}.xlsx`);
+}
+function sidCompare(a,b){
+  return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+}
+function safeSheetName(name, used){
+  let base = String(name||'반').replace(/[\\\/\?\*\[\]:]/g,'').slice(0,28) || '반';
+  let candidate = base, n=1;
+  while(used.has(candidate)){ candidate = (base+'_'+(++n)).slice(0,31); }
+  used.add(candidate);
+  return candidate;
+}
+async function exportAttendanceBook(){
+  const all = window._allAppsCache || await getAllApplications();
+  if(!CONFIG.programs.length){ showAlert('등록된 프로그램/반이 없습니다.'); return; }
+  const wb = XLSX.utils.book_new();
+  const usedNames = new Set();
+  let anySheet = false;
+  for(const p of CONFIG.programs){
+    for(const c of p.classes){
+      anySheet = true;
+      const students = all.filter(a=>a.programId===p.id && a.classId===c.id).slice().sort((a,b)=>sidCompare(a.sid,b.sid));
+      const data = students.length
+        ? students.map((s,i)=>({ 연번:i+1, 학번:s.sid, 이름:s.name, 모둠:s.group+'모둠', '1교시':'', '2교시':'', '3교시':'', '4교시':'', 비고:'' }))
+        : [{ 연번:'', 학번:'', 이름:'(신청 학생 없음)', 모둠:'', '1교시':'', '2교시':'', '3교시':'', '4교시':'', 비고:'' }];
+      const ws = XLSX.utils.json_to_sheet(data);
+      const sheetName = safeSheetName(`${p.name.replace(/^트랙 ./,'').split('(')[0].trim().slice(0,10)}_${c.name}`, usedNames);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
+  }
+  if(!anySheet){ showAlert('등록된 반이 없습니다.'); return; }
+  XLSX.writeFile(wb, `반별출석부_${todayStr()}.xlsx`);
+}
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; }
+
+// ----- Not-yet-applied tab -----
+async function renderAdminNotYet(body){
+  body.innerHTML = `<div class="card">불러오는 중...</div>`;
+  const notYet = await getNotAppliedList();
+  const rows = notYet.map(r=>`<tr><td>${r.sid}</td><td>${r.name}</td><td>${r.birth}</td></tr>`).join('');
+  body.innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;">미신청 학생 (${notYet.length}명 / 전체 ${ROSTER.length}명)</h3>
+      <button class="btn coral small" onclick="exportNotYet()">⬇ 엑셀 다운로드</button>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table><thead><tr><th>학번</th><th>이름</th><th>생년월일</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#999;">전원 신청 완료!</td></tr>'}</tbody></table>
+      </div>
+    </div>
+  `;
+  window._notYetCache = notYet;
+}
+function exportNotYet(){
+  const data = (window._notYetCache||[]).map(r=>({ 학번:r.sid, 이름:r.name, 생년월일:r.birth }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '미신청자');
+  XLSX.writeFile(wb, `미신청학생_${todayStr()}.xlsx`);
+}
+
+// ----- Manage (cancel / edit) tab -----
+async function renderAdminManage(body){
+  body.innerHTML = `<div class="card">불러오는 중...</div>`;
+  const all = await getAllApplications();
+  all.sort((a,b)=>sidCompare(a.sid,b.sid));
+  window._manageAppsCache = all;
+  const rows = all.map(a=>`
+    <tr>
+      <td>${a.sid}</td><td>${a.name}</td><td>${a.programName}</td><td>${a.className}</td><td>${a.group}모둠</td>
+      <td style="white-space:nowrap;">
+        <button class="btn small teal" style="margin:0 4px 0 0;" onclick="openEditForSid('${a.sid}')">수정</button>
+        <button class="btn small coral" style="margin:0;" onclick="cancelApplicationBySid('${a.sid}')">취소</button>
+      </td>
+    </tr>`).join('');
+  body.innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;">신청 취소 / 수정</h3>
+      <label>학번으로 검색</label>
+      <div class="inline-form">
+        <input type="text" id="manage-sid" placeholder="학번 입력" onkeydown="if(event.key==='Enter') searchManageSid()">
+        <button class="btn small" onclick="searchManageSid()">검색</button>
+      </div>
+      <div id="manage-result" style="margin-top:16px;"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">전체 신청자 목록 (${all.length}명, 학번순)</h3>
+      <div class="table-wrap">
+        <table><thead><tr><th>학번</th><th>이름</th><th>프로그램</th><th>반</th><th>모둠</th><th>관리</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#999;">신청 내역 없음</td></tr>'}</tbody></table>
+      </div>
+    </div>
+  `;
+}
+async function searchManageSid(){
+  const sid = document.getElementById('manage-sid').value.trim();
+  const resultEl = document.getElementById('manage-result');
+  if(!sid) return;
+  resultEl.innerHTML = `<div style="color:var(--text-light);font-size:13px;">불러오는 중...</div>`;
+  const app = await getApplicationBySid(sid);
+  if(!app){
+    resultEl.innerHTML = `<div class="error-box">해당 학번의 신청 내역이 없습니다.</div>`;
+    return;
+  }
+  showEditFormFor(app);
+}
+function openEditForSid(sid){
+  const a = (window._manageAppsCache||[]).find(x=>String(x.sid)===String(sid));
+  if(!a){ showAlert('신청 내역을 찾을 수 없습니다.'); return; }
+  document.getElementById('manage-sid').value = sid;
+  showEditFormFor(a);
+  const resultEl = document.getElementById('manage-result');
+  if(resultEl) resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function showEditFormFor(a){
+  STATE.editTarget = a;
+  const resultEl = document.getElementById('manage-result');
+  const progOptions = CONFIG.programs.map(p=>`<option value="${p.id}" ${p.id===a.programId?'selected':''}>${p.name}</option>`).join('');
+  resultEl.innerHTML = `
+    <div class="summary-row"><span>학번</span><span>${a.sid}</span></div>
+    <div class="summary-row"><span>이름</span><span>${a.name}</span></div>
+    <label>프로그램</label>
+    <select id="edit-prog" onchange="onEditProgChange()">${progOptions}</select>
+    <label>반</label>
+    <select id="edit-class" onchange="onEditClassChange()"></select>
+    <label>모둠</label>
+    <select id="edit-group"></select>
+    <button class="btn teal" onclick="saveEdit()">변경 저장</button>
+    <button class="btn coral" onclick="deleteEdit()">신청 취소(삭제)</button>
+  `;
+  populateEditClasses(a.programId, a.classId);
+  populateEditGroups(a.programId, a.classId, a.group);
+}
+function cancelApplicationBySid(sid){
+  const a = (window._manageAppsCache||[]).find(x=>String(x.sid)===String(sid));
+  if(!a) return;
+  showConfirmDialog(`${a.name}(${a.sid}) 학생의 신청을 취소하시겠습니까?`, async ()=>{
+    const r = await deleteApplicationFirestore(a.sid);
+    if(!r || !r.success){ showAlert('⚠️ 취소 처리에 실패했습니다. 다시 시도해주세요.'); return; }
+    showAlert('신청이 취소되었습니다.');
+    render();
+  });
+}
+async function onEditProgChange(){
+  const pid = document.getElementById('edit-prog').value;
+  await populateEditClasses(pid, null);
+  await populateEditGroups(pid, document.getElementById('edit-class').value, null);
+}
+async function onEditClassChange(){
+  const pid = document.getElementById('edit-prog').value;
+  const cid = document.getElementById('edit-class').value;
+  await populateEditGroups(pid, cid, null);
+}
+async function populateEditClasses(pid, selCid){
+  const p = findProgram(pid);
+  const sel = document.getElementById('edit-class');
+  sel.innerHTML = p.classes.map(c=>`<option value="${c.id}" ${c.id===selCid?'selected':''}>${c.name}</option>`).join('');
+}
+async function populateEditGroups(pid, cid, selGroup){
+  const sel = document.getElementById('edit-group');
+  if(!cid){ sel.innerHTML=''; return; }
+  const isSameClass = STATE.editTarget.programId===pid && STATE.editTarget.classId===cid;
+  const cls = findClass(findProgram(pid), cid);
+  const capacity = (cls && cls.capacity) || 26;
+  const counts = await getClassGroupCounts(pid, cid);
+  if(isSameClass) counts[STATE.editTarget.group] = Math.max(0, (counts[STATE.editTarget.group]||0)-1); // 본인 제외 후 재계산
+  const plan = computeGroupPlan(counts, capacity);
+  let opts='';
+  for(let g=1; g<=6; g++){
+    const info = plan.groups[g];
+    if(!info.active) continue;
+    const allowed = info.canJoin || (isSameClass && g===STATE.editTarget.group);
+    if(!allowed) continue;
+    opts += `<option value="${g}" ${g===(selGroup||STATE.editTarget.group)?'selected':''}>${g}모둠 (${info.count}/${info.displayMax}명)</option>`;
+  }
+  sel.innerHTML = opts || '<option value="">선택 가능한 모둠 없음</option>';
+}
+async function saveEdit(){
+  const oldA = STATE.editTarget;
+  const pid = document.getElementById('edit-prog').value;
+  const cid = document.getElementById('edit-class').value;
+  const g = parseInt(document.getElementById('edit-group').value);
+  if(!g){ showAlert('선택 가능한 모둠이 없습니다.'); return; }
+  const program = findProgram(pid), cls = findClass(program, cid);
+  const result = await editApplicationFirestore(oldA.sid, pid, cid, g, program.name, cls.name);
+  if(!result || !result.success){
+    showAlert(result && result.reason==='group_full' ? '해당 모둠 정원이 가득 찼습니다.' : '⚠️ 변경에 실패했습니다.');
+    return;
+  }
+  showAlert('변경 완료되었습니다.');
+  render();
+}
+function deleteEdit(){
+  const a = STATE.editTarget;
+  showConfirmDialog(`${a.name}(${a.sid}) 학생의 신청을 취소하시겠습니까?`, async ()=>{
+    const r = await deleteApplicationFirestore(a.sid);
+    if(!r || !r.success){ showAlert('⚠️ 취소 처리에 실패했습니다.'); return; }
+    showAlert('신청이 취소되었습니다.');
+    render();
+  });
+}
+
+// ---------- boot ----------
+initApp();
+</script>
+</body>
+</html>
